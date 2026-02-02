@@ -3505,6 +3505,97 @@ export const appRouter = router({
         };
       }),
 
+    // 获取用户资料（昵称/头像等）
+    getUserProfile: publicProcedure
+      .input(z.object({
+        userOpenId: z.string(),
+      }))
+      .query(async ({ input }) => {
+        let user = await db.getUserByOpenId(input.userOpenId);
+        if (!user) {
+          user = await db.createUser({
+            openId: input.userOpenId,
+            loginMethod: 'miniprogram',
+            role: 'user',
+            points: 10,
+            initialFreeCredits: 10,
+            hasUsedFreeCredits: false,
+          });
+        }
+
+        return {
+          id: user.id,
+          openId: user.openId,
+          name: user.name,
+          avatar: user.avatar,
+          gender: user.gender,
+          userType: user.userType,
+          faceType: user.faceType,
+          points: user.points,
+          createdAt: user.createdAt,
+        };
+      }),
+
+    // 更新用户资料（昵称/头像）
+    updateUserProfile: publicProcedure
+      .input(z.object({
+        userOpenId: z.string(),
+        name: z.string().optional(),
+        avatar: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        let user = await db.getUserByOpenId(input.userOpenId);
+        if (!user) {
+          user = await db.createUser({
+            openId: input.userOpenId,
+            loginMethod: 'miniprogram',
+            role: 'user',
+            points: 10,
+            initialFreeCredits: 10,
+            hasUsedFreeCredits: false,
+          });
+        }
+
+        const updateData: Record<string, any> = {};
+        if (input.name) updateData.name = input.name;
+        if (input.avatar) updateData.avatar = input.avatar;
+
+        if (Object.keys(updateData).length > 0) {
+          await db.updateUser(user.id, updateData);
+        }
+
+        return { success: true };
+      }),
+
+    // 上传头像并更新用户资料
+    uploadAvatar: publicProcedure
+      .input(z.object({
+        userOpenId: z.string(),
+        imageBase64: z.string(),
+        mimeType: z.string().default('image/jpeg'),
+      }))
+      .mutation(async ({ input }) => {
+        let user = await db.getUserByOpenId(input.userOpenId);
+        if (!user) {
+          user = await db.createUser({
+            openId: input.userOpenId,
+            loginMethod: 'miniprogram',
+            role: 'user',
+            points: 10,
+            initialFreeCredits: 10,
+            hasUsedFreeCredits: false,
+          });
+        }
+
+        const buffer = Buffer.from(input.imageBase64, 'base64');
+        const ext = input.mimeType === 'image/png' ? 'png' : 'jpg';
+        const fileKey = `avatars/${input.userOpenId}/${nanoid()}.${ext}`;
+        const { url } = await storagePut(fileKey, buffer, input.mimeType);
+
+        await db.updateUser(user.id, { avatar: url });
+        return { url, fileKey };
+      }),
+
     // 获取未完成订单（用于P0恢复生成流程）
     getPendingOrder: publicProcedure
       .input(z.object({

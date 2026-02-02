@@ -11,15 +11,40 @@ Page({
     pageSize: 20,
     hasMore: true,
     total: 0,
-    statusBarHeight: 20
+    statusBarHeight: 20,
+    navTop: 20,
+    navHeight: 44,
+    navBarHeight: 88,
+    capsuleSpace: 0
   },
 
   onLoad() {
-    // 获取状态栏高度
-    const systemInfo = wx.getSystemInfoSync()
-    this.setData({
-      statusBarHeight: systemInfo.statusBarHeight || 20
-    })
+    // 初始化自定义导航栏（与胶囊按钮对齐，并预留右侧安全区）
+    try {
+      const systemInfo = wx.getSystemInfoSync()
+      const menuButton = wx.getMenuButtonBoundingClientRect ? wx.getMenuButtonBoundingClientRect() : null
+      const statusBarHeight = systemInfo.statusBarHeight || 20
+      const navTop = menuButton ? menuButton.top : statusBarHeight
+      const navHeight = menuButton ? menuButton.height : 44
+      const navBarHeight = menuButton ? menuButton.bottom : (navTop + navHeight)
+      const capsuleSpace = menuButton ? Math.max(0, systemInfo.screenWidth - menuButton.left) : 0
+
+      this.setData({
+        statusBarHeight,
+        navTop,
+        navHeight,
+        navBarHeight,
+        capsuleSpace
+      })
+    } catch (error) {
+      this.setData({
+        statusBarHeight: 20,
+        navTop: 20,
+        navHeight: 44,
+        navBarHeight: 88,
+        capsuleSpace: 0
+      })
+    }
 
     this.loadUser()
     this.loadPhotos()
@@ -35,8 +60,24 @@ Page({
   // 加载用户信息
   async loadUser() {
     try {
-      const data = await userApi.getMe()
-      this.setData({ user: data || {} })
+      const userOpenId = wx.getStorageSync('userOpenId')
+      if (!userOpenId) {
+        this.setData({ user: {} })
+        return
+      }
+
+      const data = await userApi.getMe(userOpenId)
+      if (!data) {
+        this.setData({ user: {} })
+        return
+      }
+
+      this.setData({
+        user: {
+          ...data,
+          nickname: data.nickname || data.name || data.userName || ''
+        }
+      })
     } catch (error) {
       console.error('加载用户信息失败:', error)
     }
@@ -71,6 +112,9 @@ Page({
 
       const photos = (data.list || []).map(item => ({
         ...item,
+        photoId: item.photoId || item.id,
+        resultImageUrl: item.resultUrl,
+        originalImageUrl: item.selfieUrl,
         statusText: this.getStatusText(item.status),
         createdAt: this.formatDate(item.createdAt)
       }))
@@ -116,12 +160,12 @@ Page({
     if (photo.status === 'completed' && photo.resultImageUrl) {
       // 已完成的照片，跳转结果页或预览
       wx.navigateTo({
-        url: `/pages/result/result?photoId=${photo.id}`
+        url: `/pages/result/result?photoId=${photo.photoId}`
       })
     } else if (photo.status === 'processing') {
       // 处理中，跳转生成页
       wx.navigateTo({
-        url: `/pages/generating/generating?photoId=${photo.id}`
+        url: `/pages/generating/generating?photoId=${photo.photoId}`
       })
     } else if (photo.status === 'failed') {
       // 失败的照片，提示可以重新生成
@@ -261,13 +305,13 @@ Page({
             const userOpenId = wx.getStorageSync('userOpenId')
 
             // 调用删除 API
-            await photoApi.deletePhoto(photo.id, userOpenId)
+            await photoApi.deletePhoto(photo.photoId, userOpenId)
 
             // 删除成功，更新前端列表
-            const photos = this.data.photos.filter(p => p.id !== photo.id)
+            const photos = this.data.photos.filter(p => p.photoId !== photo.photoId)
             this.setData({
               photos,
-              total: this.data.total - 1
+              total: Math.max(0, this.data.total - 1)
             })
 
             wx.hideLoading()
@@ -330,5 +374,106 @@ Page({
       failed: '生成失败'
     }
     return statusMap[status] || status
+  },
+
+  // 修改昵称
+  editNickname() {
+    const userOpenId = wx.getStorageSync('userOpenId')
+    if (!userOpenId) return
+
+    const currentName = this.data.user.nickname || this.data.user.name || ''
+
+    wx.showModal({
+      title: '修改昵称',
+      editable: true,
+      placeholderText: currentName || '请输入昵称',
+      confirmText: '保存',
+      content: currentName ? `当前昵称：${currentName}` : '',
+      success: async (res) => {
+        if (!res.confirm) return
+        if (typeof res.content !== 'string') {
+          wx.showToast({ title: '当前版本不支持修改昵称', icon: 'none' })
+          return
+        }
+
+        const nickname = res.content.trim()
+        if (!nickname) {
+          wx.showToast({ title: '昵称不能为空', icon: 'none' })
+          return
+        }
+
+        if (nickname === currentName) {
+          wx.showToast({ title: '昵称未修改', icon: 'none' })
+          return
+        }
+
+        try {
+          await userApi.updateProfile(userOpenId, { name: nickname })
+          this.setData({
+            user: {
+              ...this.data.user,
+              nickname,
+              name: nickname
+            }
+          })
+          wx.showToast({ title: '已更新', icon: 'success' })
+        } catch (error) {
+          console.error('更新昵称失败:', error)
+          wx.showToast({ title: '更新失败', icon: 'none' })
+        }
+      },
+      fail: () => {
+        // ignore
+      }
+    })
+  },
+
+  // 修改头像
+  changeAvatar() {
+    const userOpenId = wx.getStorageSync('userOpenId')
+    if (!userOpenId) return
+
+    wx.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      success: async (res) => {
+        const filePath = res.tempFilePaths && res.tempFilePaths[0]
+        if (!filePath) return
+
+        const ext = filePath.toLowerCase().endsWith('.png') ? 'png' : 'jpg'
+        const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg'
+
+        wx.showLoading({ title: '上传中...' })
+        try {
+          const base64 = await new Promise((resolve, reject) => {
+            const fs = wx.getFileSystemManager()
+            fs.readFile({
+              filePath,
+              encoding: 'base64',
+              success: (data) => resolve(data.data),
+              fail: reject
+            })
+          })
+
+          const uploadRes = await userApi.uploadAvatar(userOpenId, base64, mimeType)
+          if (uploadRes && uploadRes.url) {
+            this.setData({
+              user: {
+                ...this.data.user,
+                avatar: uploadRes.url
+              }
+            })
+            wx.showToast({ title: '头像已更新', icon: 'success' })
+          } else {
+            wx.showToast({ title: '上传失败', icon: 'none' })
+          }
+        } catch (error) {
+          console.error('上传头像失败:', error)
+          wx.showToast({ title: '上传失败', icon: 'none' })
+        } finally {
+          wx.hideLoading()
+        }
+      }
+    })
   }
 })

@@ -6,11 +6,15 @@ const TEMPLATE_CACHE_PREFIX = 'templateCache:p1:'
 
 
 Page({
-  data: {
-    statusBarHeight: 20,
-    activeGroupCode: '',
-    currentIndex: 0,
-    groupTypes: [],
+  data: {
+    statusBarHeight: 20,
+    navTop: 20,
+    navHeight: 44,
+    navBarHeight: 88,
+    capsuleSpace: 0,
+    activeGroupCode: '',
+    currentIndex: 0,
+    groupTypes: [],
     templates: [],
     loading: false,
     loadingMore: false,
@@ -38,12 +42,33 @@ Page({
   hasObservedAll: false,
   disableIntersectionObserver: false,
 
-  onLoad(options) {
-    // 获取状态栏高度（用于自定义导航栏）
-    const systemInfo = wx.getSystemInfoSync()
-    this.setData({
-      statusBarHeight: systemInfo.statusBarHeight || 20
-    })
+  onLoad(options) {
+    // 初始化自定义导航栏（与胶囊按钮对齐，并预留右侧安全区）
+    try {
+      const systemInfo = wx.getSystemInfoSync()
+      const menuButton = wx.getMenuButtonBoundingClientRect ? wx.getMenuButtonBoundingClientRect() : null
+      const statusBarHeight = systemInfo.statusBarHeight || 20
+      const navTop = menuButton ? menuButton.top : statusBarHeight
+      const navHeight = menuButton ? menuButton.height : 44
+      const navBarHeight = menuButton ? menuButton.bottom : (navTop + navHeight)
+      const capsuleSpace = menuButton ? Math.max(0, systemInfo.screenWidth - menuButton.left) : 0
+
+      this.setData({
+        statusBarHeight,
+        navTop,
+        navHeight,
+        navBarHeight,
+        capsuleSpace
+      })
+    } catch (error) {
+      this.setData({
+        statusBarHeight: 20,
+        navTop: 20,
+        navHeight: 44,
+        navBarHeight: 88,
+        capsuleSpace: 0
+      })
+    }
 
     // 处理推广链接
     this.handlePromotion(options)

@@ -57,6 +57,16 @@ Page({
     if (options.fromPending === 'true') {
       this.setData({ fromPending: true })
       this.resumePendingOrder()
+    } else if (options.photoId) {
+      // 从“我的照片”进入，直接轮询该 photoId
+      const photoId = options.photoId
+      this.setData({
+        photoId,
+        totalPhotos: 1,
+        currentPhotoIndex: 1,
+        progressText: '正在生成第1/1张'
+      })
+      this.startPolling(photoId)
     } else {
       this.startGeneration()
     }
@@ -95,6 +105,7 @@ Page({
 
   // ========== 倒计时功能 ==========
   startCountdown() {
+    this.stopCountdown()
     // 根据照片数量计算预计时间（每张照片约5秒）
     // 1张 = 5秒，3张 = 15秒，5张 = 25秒
     const totalPhotos = this.data.totalPhotos || 1

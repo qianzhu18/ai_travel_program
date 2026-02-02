@@ -8,11 +8,15 @@
 
 /* ========== 自定义导航栏 ========== */
 .custom-navbar {
+  background-color: #fdf9f6;
+}
+
+.navbar-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10rpx 20rpx;
-  background-color: #fdf9f6;
+  padding: 0 20rpx;
+  box-sizing: border-box;
 }
 
 .navbar-back {
@@ -65,10 +69,24 @@
   gap: 8rpx;
 }
 
+.nickname-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
 .nickname {
   font-size: 32rpx;
   font-weight: 600;
   color: #333333;
+}
+
+.edit-text {
+  font-size: 24rpx;
+  color: #8a7c73;
+  padding: 6rpx 12rpx;
+  border-radius: 16rpx;
+  background: #f3ece7;
 }
 
 .photo-count {
