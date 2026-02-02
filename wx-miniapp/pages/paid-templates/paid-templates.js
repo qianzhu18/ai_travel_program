@@ -679,6 +679,10 @@ Page({
     return list.map((tpl) => {
 
       const item = { ...tpl }
+      const normalizedId = typeof item.id === 'number' ? item.id : Number(item.id)
+      if (Number.isFinite(normalizedId)) {
+        item.id = normalizedId
+      }
 
       if (item.imageUrl && item.imageUrl.startsWith('/')) {
 
@@ -2142,7 +2146,6 @@ Page({
   }
 
 })
-
 
 
 

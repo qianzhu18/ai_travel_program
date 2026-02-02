@@ -549,44 +549,13 @@ Page({
       })
     }
 
-    // 如果是首次授权，先弹出授权，再进入详情
-    if (this.locationAuthStatus === undefined) {
-      if (this.isRequestingLocation) {
-        navigate()
-        return
-      }
-
-      this.isRequestingLocation = true
-      console.log('[Location] 立即请求位置授权...')
-
-      wx.authorize({
-        scope: 'scope.userLocation',
-        success: () => {
-          console.log('[Location] 用户同意授权，开始获取位置')
-          this.locationAuthStatus = true
-          this.saveUserLocation()
-        },
-        fail: (err) => {
-          console.log('[Location] 用户拒绝位置授权', err)
-          this.locationAuthStatus = false
-        },
-        complete: () => {
-          this.isRequestingLocation = false
-          navigate()
-        }
-      })
-      return
-    }
-
-    if (this.locationAuthStatus === true) {
-      this.saveUserLocation()
-    } else if (this.locationAuthStatus === false) {
-      // 不阻塞跳转，给提示即可
-      this.promptOpenLocationSetting()
-    }
-
-    navigate()
-  },
+    // 不主动弹出授权弹窗，仅在已授权时获取位置
+    if (this.locationAuthStatus === true) {
+      this.saveUserLocation()
+    }
+
+    navigate()
+  },
 
   // 引导用户去设置开启定位权限
   promptOpenLocationSetting() {
