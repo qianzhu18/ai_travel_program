@@ -6,11 +6,7 @@
       class="navbar-content"
       style="margin-top: {{navTop}}px; height: {{navHeight}}px; padding-right: {{capsuleSpace}}px;"
     >
-      <view class="my-photos-btn" bindtap="goToMyPhotos">
-        <text class="my-photos-text">我的照片</text>
-      </view>
       <view class="navbar-title">选择你的梦想瞬间</view>
-      <view class="navbar-placeholder"></view>
     </view>
   </view>
 

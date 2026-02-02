@@ -16,13 +16,9 @@
 .navbar-content {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 0 30rpx;
   box-sizing: border-box;
-}
-
-.navbar-placeholder {
-  min-width: 0;
 }
 
 .navbar-title {
@@ -30,21 +26,6 @@
   font-weight: 500;
   color: #333333;
   text-align: center;
-  flex: 1;
-}
-
-.my-photos-btn {
-  display: flex;
-  align-items: center;
-  padding: 8rpx 16rpx;
-  min-width: 120rpx;
-  justify-content: flex-start;
-}
-
-.my-photos-text {
-  font-size: 28rpx;
-  font-weight: 400;
-  color: #6f5d55;
 }
 
 /* ========== 标签栏部分 ========== */

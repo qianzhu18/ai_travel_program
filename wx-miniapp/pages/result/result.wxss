@@ -265,8 +265,8 @@
 
 /* IP头像图标（放大） */
 .ip-avatar-icon {
-  width: 130rpx;
-  height: 130rpx;
+  width: 160rpx;
+  height: 160rpx;
 }
 
 .btn-label {

@@ -14,23 +14,7 @@
     </view>
   </view>
 
-  <!-- 用户信息头部 -->
-  <view class="header">
-    <view class="user-info">
-      <image
-        src="{{user.avatar || '/images/default-avatar.svg'}}"
-        class="avatar"
-        bindtap="changeAvatar"
-      />
-      <view class="info">
-        <view class="nickname-row" bindtap="editNickname">
-          <text class="nickname">{{user.nickname || user.name || '游客'}}</text>
-          <text class="edit-text">编辑</text>
-        </view>
-        <text class="photo-count">共 {{total}} 张照片</text>
-      </view>
-    </view>
-  </view>
+  <!-- 用户信息头部（按甲方意见简化） -->
 
   <!-- 照片列表 -->
   <scroll-view

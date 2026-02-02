@@ -362,13 +362,6 @@ Page({
           userStatus.userType = analyzeResult.userType
           wx.setStorageSync('userStatus', userStatus)
           detectedFaceType = analyzeResult.faceType
-
-          this.setData({
-            progressText: `分析完成：${analyzeResult.userType || ''}${analyzeResult.faceType ? '，' + analyzeResult.faceType : ''}`
-          })
-
-          // 短暂显示分析结果
-          await new Promise(resolve => setTimeout(resolve, 800))
         }
       }
 
