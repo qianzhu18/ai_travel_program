@@ -42,6 +42,28 @@
   width: 80rpx;
 }
 
+/* 拍摄时间/地点提示 */
+.meta-bar {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 12rpx 28rpx 8rpx;
+  color: #8a7c73;
+  font-size: 26rpx;
+}
+
+.meta-dot {
+  width: 6rpx;
+  height: 24rpx;
+  border-radius: 4rpx;
+  background: #e89a8d;
+}
+
+.meta-text {
+  font-size: 26rpx;
+  color: #8a7c73;
+}
+
 /* ========== 照片列表滚动区域 ========== */
 .photos-scroll {
   flex: 1;
@@ -53,6 +75,7 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 16rpx;
   padding: 16rpx;
+  padding-bottom: 160rpx;
 }
 
 /* ========== 照片卡片 ========== */
@@ -184,6 +207,53 @@
   align-items: center;
   justify-content: center;
   padding: 160rpx 40rpx;
+  padding-bottom: 220rpx;
+}
+
+/* 底部积分栏 */
+.footer-bar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 16rpx 24rpx 24rpx;
+  background: #ffffff;
+  border-top: 1rpx solid #f0ebe7;
+  flex-shrink: 0;
+}
+
+.ip-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 48rpx;
+}
+
+.points-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  color: #bcaea8;
+  font-size: 24rpx;
+}
+
+.points-rest {
+  color: #e89a8d;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.points-used {
+  color: #bcaea8;
+  font-size: 24rpx;
+}
+
+.change-selfie-btn {
+  padding: 14rpx 28rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #f0b5a3 0%, #e89a8d 100%);
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 600;
 }
 
 .empty-icon {

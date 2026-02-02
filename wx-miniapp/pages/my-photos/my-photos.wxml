@@ -14,7 +14,11 @@
     </view>
   </view>
 
-  <!-- 用户信息头部（按甲方意见简化） -->
+  <!-- 拍摄时间/地点提醒 -->
+  <view class="meta-bar" wx:if="{{latestMetaText}}">
+    <view class="meta-dot"></view>
+    <text class="meta-text">{{latestMetaText}}</text>
+  </view>
 
   <!-- 照片列表 -->
   <scroll-view
@@ -103,4 +107,14 @@
       <text>没有更多了</text>
     </view>
   </scroll-view>
+
+  <!-- 底部积分与更换自拍 -->
+  <view class="footer-bar">
+    <image class="ip-avatar" src="/images/ip-avatar.png" mode="aspectFill" />
+    <view class="points-info">
+      <text class="points-rest">还剩积分{{points}}分</text>
+      <text class="points-used">已消耗积分{{usedPoints}}分</text>
+    </view>
+    <button class="change-selfie-btn" bindtap="changeSelfie">更换自拍</button>
+  </view>
 </view>

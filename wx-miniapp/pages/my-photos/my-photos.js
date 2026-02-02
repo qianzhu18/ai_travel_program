@@ -11,6 +11,9 @@ Page({
     pageSize: 20,
     hasMore: true,
     total: 0,
+    points: 0,
+    usedPoints: 0,
+    latestMetaText: '',
     statusBarHeight: 20,
     navTop: 20,
     navHeight: 44,
@@ -76,7 +79,9 @@ Page({
         user: {
           ...data,
           nickname: data.nickname || data.name || data.userName || ''
-        }
+        },
+        points: Number(data.points || 0),
+        usedPoints: Math.max(0, Number(data.initialFreeCredits || 0) - Number(data.points || 0))
       })
     } catch (error) {
       console.error('加载用户信息失败:', error)
@@ -110,19 +115,28 @@ Page({
         this.data.pageSize
       )
 
-      const photos = (data.list || []).map(item => ({
-        ...item,
-        photoId: item.photoId || item.id,
-        resultImageUrl: item.resultUrl,
-        originalImageUrl: item.selfieUrl,
-        statusText: this.getStatusText(item.status),
-        createdAt: this.formatDate(item.createdAt)
-      }))
+      const photos = (data.list || []).map(item => {
+        const rawCreatedAt = item.createdAt
+        return {
+          ...item,
+          photoId: item.photoId || item.id,
+          resultImageUrl: item.resultUrl,
+          originalImageUrl: item.selfieUrl,
+          statusText: this.getStatusText(item.status),
+          createdAt: this.formatDate(rawCreatedAt),
+          rawCreatedAt
+        }
+      })
+
+      const merged = refresh ? photos : [...this.data.photos, ...photos]
+      const latest = merged[0]
+      const latestMetaText = latest ? this.formatMetaText(latest) : ''
 
       this.setData({
-        photos: refresh ? photos : [...this.data.photos, ...photos],
+        photos: merged,
         total: data.total || 0,
-        hasMore: photos.length >= this.data.pageSize
+        hasMore: photos.length >= this.data.pageSize,
+        latestMetaText
       })
     } catch (error) {
       console.error('加载照片列表失败:', error)
@@ -373,6 +387,22 @@ Page({
     return `${date.getMonth() + 1}月${date.getDate()}日`
   },
 
+  // 组装顶部拍摄信息
+  formatMetaText(photo) {
+    if (!photo) return ''
+    const rawCreatedAt = photo.rawCreatedAt || photo.createdAtRaw || photo.createdAt
+    const parsedDate = rawCreatedAt ? new Date(rawCreatedAt) : null
+    const hasValidDate = parsedDate && !Number.isNaN(parsedDate.getTime())
+    const dateText = hasValidDate
+      ? `${parsedDate.getFullYear()}年${parsedDate.getMonth() + 1}月${parsedDate.getDate()}日`
+      : ''
+    const locationText = [photo.city, photo.scenicSpot].filter(Boolean).join('')
+    if (dateText && locationText) return `${dateText} ${locationText}`
+    if (dateText) return dateText
+    if (locationText) return locationText
+    return ''
+  },
+
   // 获取状态文本
   getStatusText(status) {
     const statusMap = {
@@ -382,6 +412,13 @@ Page({
       failed: '生成失败'
     }
     return statusMap[status] || status
+  },
+
+  // 更换自拍（不触发生成，仅更新自拍）
+  changeSelfie() {
+    wx.navigateTo({
+      url: '/pages/camera/camera?mode=updateSelfie'
+    })
   },
 
   // 修改昵称

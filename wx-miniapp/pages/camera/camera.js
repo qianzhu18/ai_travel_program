@@ -7,14 +7,16 @@ Page({
     photoTaken: false,
     tempPhotoPath: '',
     analyzing: false, // 是否正在分析脸型
-    analyzeStatus: '' // 分析状态提示
+    analyzeStatus: '', // 分析状态提示
+    mode: '' // updateSelfie | ''
   },
 
-  onLoad() {
+  onLoad(options = {}) {
     // 获取状态栏高度
     const systemInfo = wx.getSystemInfoSync()
     this.setData({
-      statusBarHeight: systemInfo.statusBarHeight || 20
+      statusBarHeight: systemInfo.statusBarHeight || 20,
+      mode: options.mode || ''
     })
 
     // 创建相机上下文
@@ -89,6 +91,25 @@ Page({
 
       // 保存照片URL到Storage，供generating页面使用
       wx.setStorageSync('originalImageUrl', imageUrl)
+
+      if (this.data.mode === 'updateSelfie') {
+        const userOpenId = wx.getStorageSync('userOpenId')
+        if (userOpenId) {
+          try {
+            await photoApi.saveSelfie(userOpenId, imageUrl)
+            const userStatus = wx.getStorageSync('userStatus') || {}
+            userStatus.lastSelfieUrl = imageUrl
+            wx.setStorageSync('userStatus', userStatus)
+          } catch (error) {
+            console.error('保存自拍失败:', error)
+          }
+        }
+
+        wx.hideLoading()
+        wx.showToast({ title: '自拍已更新', icon: 'success' })
+        wx.navigateBack()
+        return
+      }
 
       // 清除之前的pendingOrder（如果有），让generating页面知道需要进行分析和创建任务
       wx.removeStorageSync('pendingOrder')

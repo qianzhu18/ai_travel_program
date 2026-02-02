@@ -188,6 +188,15 @@ const photoApi = {
     })
   },
 
+  // 保存用户自拍（不触发生成）
+  saveSelfie(userOpenId, selfieUrl) {
+    return request({
+      url: '/api/trpc/mp.saveSelfie',
+      method: 'POST',
+      data: { userOpenId, selfieUrl }
+    })
+  },
+
   // 获取照片详情（P9 分享页）
   getById(photoId) {
     return request({

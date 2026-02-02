@@ -2766,8 +2766,27 @@ export async function getUserPhotosPaginated(userId: number, page: number, pageS
     .orderBy(desc(userPhotos.createdAt))
     .limit(pageSize)
     .offset(offset);
+  const templateIds = Array.from(new Set(list.map(item => item.templateId).filter(Boolean)));
+  let templateMap = new Map<number, { city: string; scenicSpot: string }>();
+  if (templateIds.length > 0) {
+    const templateRows = await db
+      .select({ id: templates.id, city: templates.city, scenicSpot: templates.scenicSpot })
+      .from(templates)
+      .where(inArray(templates.id, templateIds));
+    templateMap = new Map(templateRows.map(t => [t.id, { city: t.city, scenicSpot: t.scenicSpot }]));
+  }
 
-  return { list, total };
+  const listWithMeta = list.map(photo => {
+    const templateMeta = templateMap.get(photo.templateId);
+    if (!templateMeta) return photo;
+    return {
+      ...photo,
+      city: templateMeta.city,
+      scenicSpot: templateMeta.scenicSpot,
+    };
+  });
+
+  return { list: listWithMeta, total };
 }
 
 /**
