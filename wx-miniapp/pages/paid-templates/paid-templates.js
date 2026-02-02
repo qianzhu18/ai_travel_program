@@ -1720,7 +1720,11 @@ Page({
 
   toggleTemplateSelect(e) {
 
-    const id = e.currentTarget.dataset.id
+    const rawId = e.currentTarget.dataset.id
+    const id = typeof rawId === 'number' ? rawId : Number(rawId)
+    if (!Number.isFinite(id)) {
+      return
+    }
 
     let selectedTemplates = [...this.data.selectedTemplates]
 
@@ -1846,7 +1850,8 @@ Page({
 
   isTemplateSelected(templateId) {
 
-    return this.data.selectedTemplates.includes(templateId)
+    const id = typeof templateId === 'number' ? templateId : Number(templateId)
+    return this.data.selectedTemplates.includes(id)
 
   },
 
@@ -2137,7 +2142,6 @@ Page({
   }
 
 })
-
 
 
 
