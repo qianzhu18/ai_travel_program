@@ -1,15 +1,18 @@
 <!--首页 - 模板列表-->
 <view class="container">
   <!-- 自定义导航栏 -->
-  <view class="custom-navbar" style="padding-top: {{statusBarHeight}}px;">
-    <view class="navbar-content">
-      <view class="navbar-placeholder"></view>
-      <view class="navbar-title">选择你的梦想瞬间</view>
-      <view class="my-photos-btn" bindtap="goToMyPhotos">
-        <text class="my-photos-text">我的照片</text>
-      </view>
-    </view>
-  </view>
+  <view class="custom-navbar" style="height: {{navBarHeight}}px;">
+    <view
+      class="navbar-content"
+      style="margin-top: {{navTop}}px; height: {{navHeight}}px; padding-right: {{capsuleSpace}}px;"
+    >
+      <view class="my-photos-btn" bindtap="goToMyPhotos">
+        <text class="my-photos-text">我的照片</text>
+      </view>
+      <view class="navbar-title">选择你的梦想瞬间</view>
+      <view class="navbar-placeholder"></view>
+    </view>
+  </view>
 
   <!-- 人群类型标签 -->
   <scroll-view

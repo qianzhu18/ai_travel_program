@@ -94,9 +94,28 @@ const orderApi = {
  */
 const userApi = {
   // 获取用户信息
-  getMe() {
+  getMe(userOpenId) {
     return request({
-      url: '/api/auth/me'
+      url: '/api/trpc/mp.getUserProfile',
+      data: { userOpenId }
+    })
+  },
+
+  // 更新用户资料（昵称/头像）
+  updateProfile(userOpenId, data) {
+    return request({
+      url: '/api/trpc/mp.updateUserProfile',
+      method: 'POST',
+      data: { userOpenId, ...data }
+    })
+  },
+
+  // 上传头像
+  uploadAvatar(userOpenId, imageBase64, mimeType = 'image/jpeg') {
+    return request({
+      url: '/api/trpc/mp.uploadAvatar',
+      method: 'POST',
+      data: { userOpenId, imageBase64, mimeType }
     })
   }
 }

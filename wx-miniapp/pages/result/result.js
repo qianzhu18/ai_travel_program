@@ -1,4 +1,5 @@
 // P6 照片生成结果页
+const { photoApi } = require('../../utils/api.js')
 Page({
   data: {
     resultUrls: [],
@@ -43,10 +44,12 @@ Page({
       totalNavHeightRpx: totalNavHeightRpx
     })
 
-    // 从 Storage 获取结果
+    // 从 Storage 获取结果（生成页写入）
     const resultUrl = wx.getStorageSync('resultImageUrl')
     const resultUrlsRaw = wx.getStorageSync('resultImageUrls')
-    const photoId = wx.getStorageSync('photoId')
+    const storedPhotoId = wx.getStorageSync('photoId')
+    const optionPhotoId = options?.photoId
+    const photoId = optionPhotoId || storedPhotoId
 
     const resultUrls = Array.isArray(resultUrlsRaw) ? resultUrlsRaw : []
 
@@ -76,8 +79,39 @@ Page({
       if (urls.length > 1) {
         this.startArrowTimer()
       }
+    } else if (photoId) {
+      // 从后端拉取结果（解决“从我的照片进入结果页白屏”）
+      this.fetchResultByPhotoId(photoId)
     } else {
       console.error('[Result] 错误：未找到任何有效的结果图片URL')
+      this.setData({ loading: false })
+    }
+  },
+
+  async fetchResultByPhotoId(photoId) {
+    try {
+      this.setData({ loading: true })
+      const data = await photoApi.getById(photoId)
+      const urls = Array.isArray(data?.resultUrls) && data.resultUrls.length > 0
+        ? data.resultUrls
+        : (data?.resultUrl ? [data.resultUrl] : [])
+
+      if (urls.length === 0) {
+        wx.showToast({ title: '暂无可预览结果', icon: 'none' })
+      }
+
+      this.setData({
+        resultUrls: urls,
+        photoId: data?.photoId || photoId,
+        loading: false
+      })
+
+      if (urls.length > 1) {
+        this.startArrowTimer()
+      }
+    } catch (error) {
+      console.error('[Result] 获取结果失败:', error)
+      wx.showToast({ title: '加载失败', icon: 'none' })
       this.setData({ loading: false })
     }
   },

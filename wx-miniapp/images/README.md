@@ -11,7 +11,7 @@
 
 ### 其他图标
 
-- `default-avatar.png` - 默认头像 (120x120px)
+- `default-avatar.svg` - 默认头像 (120x120px)
 
 ## 临时方案
 

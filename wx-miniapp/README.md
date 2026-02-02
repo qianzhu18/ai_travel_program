@@ -95,7 +95,7 @@ globalData: {
 ### ⚠️ 待补充
 
 - [ ] tabbar图标(images/home.png等)
-- [ ] 默认头像(images/default-avatar.png)
+- [x] 默认头像(images/default-avatar.svg)
 - [ ] 后端小程序登录接口
 
 ## 🔧 开发相关
@@ -178,7 +178,7 @@ POST /api/miniprogram/wx-login
 - `images/home-active.png` - 首页图标(选中)
 - `images/user.png` - 我的图标(未选中)
 - `images/user-active.png` - 我的图标(选中)
-- `images/default-avatar.png` - 默认头像(120x120px)
+- `images/default-avatar.svg` - 默认头像(120x120px)
 
 如果没有准备,可以暂时在 `app.json` 中注释掉 `tabBar` 配置。
 
@@ -229,4 +229,3 @@ A:
 ---
 
 **开始你的AI旅拍小程序之旅吧!** 🚀
-
