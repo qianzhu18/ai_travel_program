@@ -1,4 +1,7 @@
 import { defineConfig } from "drizzle-kit";
+import { config } from "dotenv";
+
+config({ override: true });
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
