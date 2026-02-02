@@ -1,10 +1,11 @@
 // P6 照片生成结果页
-const { photoApi } = require('../../utils/api.js')
+const { photoApi, templateApi } = require('../../utils/api.js')
 Page({
   data: {
     resultUrls: [],
     currentIndex: 0,
     photoId: '',
+    templateId: '',
     loading: true,
     statusBarHeight: 44,
     navBarHeight: 44, // 导航栏高度（与胶囊按钮对齐）
@@ -103,6 +104,7 @@ Page({
       this.setData({
         resultUrls: urls,
         photoId: data?.photoId || photoId,
+        templateId: data?.templateId || '',
         loading: false
       })
 
@@ -273,19 +275,68 @@ Page({
     console.log('[Result] 点击IP头像')
   },
 
-  // 再来一张 - 直接跳转到P8付费模板选择页
-  generateAgain() {
+  async ensureTemplateForAgain() {
+    const cached = wx.getStorageSync('selectedTemplate')
+    if (cached) {
+      try {
+        return typeof cached === 'string' ? JSON.parse(cached) : cached
+      } catch (error) {
+        // ignore parse error and continue to fetch
+      }
+    }
+
+    let templateId = this.data.templateId
+    if (!templateId && this.data.photoId) {
+      try {
+        const data = await photoApi.getById(this.data.photoId)
+        templateId = data?.templateId || ''
+        this.setData({ templateId })
+      } catch (error) {
+        console.error('[Result] 获取模板ID失败:', error)
+      }
+    }
+
+    if (!templateId) return null
+
+    try {
+      const template = await templateApi.getDetail(Number(templateId))
+      if (template) {
+        wx.setStorageSync('selectedTemplate', JSON.stringify(template))
+        return template
+      }
+    } catch (error) {
+      console.error('[Result] 获取模板详情失败:', error)
+    }
+
+    return null
+  },
+
+  navigateToCamera() {
+    wx.navigateTo({
+      url: '/pages/camera/camera'
+    })
+  },
+
+  // 再来一张 - 重新拍照
+  async generateAgain() {
     // 清除上次的结果
     wx.removeStorageSync('resultImageUrl')
     wx.removeStorageSync('resultImageUrls')
     wx.removeStorageSync('photoId')
-    wx.removeStorageSync('selectedTemplate')
-    wx.removeStorageSync('selectedTemplates')
     wx.removeStorageSync('originalImageUrl')
 
-    // 直接跳转到P8付费模板选择页
-    wx.redirectTo({
-      url: '/pages/paid-templates/paid-templates'
-    })
+    const template = await this.ensureTemplateForAgain()
+    if (!template) {
+      wx.showToast({
+        title: '请先选择模板',
+        icon: 'none'
+      })
+      wx.redirectTo({
+        url: '/pages/index/index'
+      })
+      return
+    }
+
+    this.navigateToCamera()
   }
 })

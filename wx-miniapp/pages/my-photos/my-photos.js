@@ -334,7 +334,15 @@ Page({
 
   // 去首页
   goToHome() {
-    wx.switchTab({
+    const selectedTemplateStr = wx.getStorageSync('selectedTemplate')
+    if (selectedTemplateStr) {
+      wx.navigateTo({
+        url: '/pages/camera/camera'
+      })
+      return
+    }
+
+    wx.redirectTo({
       url: '/pages/index/index'
     })
   },
