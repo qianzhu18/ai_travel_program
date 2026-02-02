@@ -13,27 +13,27 @@ import { Pencil, Users, User, AlertCircle, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// 固定的 19 种人群类型配置（用于显示说明）
-const GROUP_TYPE_INFO: Record<string, { ageRange: string }> = {
-  'girl_child': { ageRange: '0-12岁' },
-  'girl_young': { ageRange: '13-25岁' },
-  'woman_mature': { ageRange: '26-45岁' },
-  'woman_elder': { ageRange: '46岁以上' },
-  'boy_child': { ageRange: '0-12岁' },
-  'man_young': { ageRange: '13-35岁' },
-  'man_elder': { ageRange: '36岁以上' },
-  'couple_love': { ageRange: '情侣合照' },
-  'friends_girls': { ageRange: '女性朋友合照' },
-  'friends_boys': { ageRange: '男性朋友合照' },
-  'friends_mixed': { ageRange: '男女朋友合照' },
-  'mom_son_child': { ageRange: '母亲与儿童儿子' },
-  'mom_son_adult': { ageRange: '母亲与成年儿子' },
-  'mom_daughter_child': { ageRange: '母亲与儿童女儿' },
-  'mom_daughter_adult': { ageRange: '母亲与成年女儿' },
-  'dad_son_child': { ageRange: '父亲与儿童儿子' },
-  'dad_son_adult': { ageRange: '父亲与成年儿子' },
-  'dad_daughter_child': { ageRange: '父亲与儿童女儿' },
-  'dad_daughter_adult': { ageRange: '父亲与成年女儿' },
+// 固定的 19 种人群类型说明（后端 description 为空时兜底）
+const GROUP_TYPE_DESCRIPTION: Record<string, string> = {
+  'girl_child': '4~12岁女童',
+  'girl_young': '12~28岁年轻女性',
+  'woman_mature': '28~50岁成熟女性',
+  'woman_elder': '50岁以上女性',
+  'boy_child': '4~12岁男童',
+  'man_young': '12~45岁年轻男性',
+  'man_elder': '45岁以上男性',
+  'couple_love': '青年情侣',
+  'friends_girls': '青年女性好友',
+  'friends_boys': '青年男性好友',
+  'friends_mixed': '青年异性朋友',
+  'mom_son_child': '母亲与4~14岁儿子',
+  'mom_son_adult': '母亲与15~40岁儿子',
+  'mom_daughter_child': '母亲与4~14岁女儿',
+  'mom_daughter_adult': '母亲与15~40岁女儿',
+  'dad_son_child': '父亲与4~14岁儿子',
+  'dad_son_adult': '父亲与15~40岁儿子',
+  'dad_daughter_child': '父亲与4~14岁女儿',
+  'dad_daughter_adult': '父亲与15~40岁女儿',
 };
 
 const MAX_DISPLAY_NAME_LENGTH = 6;
@@ -96,9 +96,9 @@ export default function GroupTypes() {
     });
   };
 
-  // 获取类型的年龄范围说明
-  const getAgeRange = (code: string) => {
-    return GROUP_TYPE_INFO[code]?.ageRange || '';
+  // 获取类型说明（优先使用数据库 description）
+  const getDescription = (type: any) => {
+    return type?.description || GROUP_TYPE_DESCRIPTION[type?.code] || '';
   };
 
   // 单人照类型按sortOrder排序
@@ -166,7 +166,7 @@ export default function GroupTypes() {
                         <TableCell>
                           <div>
                             <span className="font-medium">{type.displayName}</span>
-                            <p className="text-xs text-muted-foreground">{getAgeRange(type.code)}</p>
+                            <p className="text-xs text-muted-foreground">{getDescription(type)}</p>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
@@ -231,7 +231,7 @@ export default function GroupTypes() {
                         <TableCell>
                           <div>
                             <span className="font-medium">{type.displayName}</span>
-                            <p className="text-xs text-muted-foreground">{getAgeRange(type.code)}</p>
+                            <p className="text-xs text-muted-foreground">{getDescription(type)}</p>
                           </div>
                         </TableCell>
                         <TableCell>

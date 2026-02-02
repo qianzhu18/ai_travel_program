@@ -6,12 +6,12 @@ import { getLoginUrl } from '@/const';
 
 // 示例模板数据
 const DEMO_TEMPLATES = [
-  { id: 1, templateId: 'tpl_001', name: '西湖春韵', imageUrl: '/assets/figma/8255-8618.webp', city: '杭州', scenicSpot: '西湖', groupType: '花季少女', price: 0, isFree: true },
-  { id: 2, templateId: 'tpl_002', name: '橘子洲头', imageUrl: '/assets/figma/8255-8624.webp', city: '长沙', scenicSpot: '橘子洲', groupType: '花季少女', price: 0, isFree: true },
-  { id: 3, templateId: 'tpl_003', name: '古典佳人', imageUrl: '/assets/figma/8255-8631.webp', city: '杭州', scenicSpot: '西湖', groupType: '花季少女', price: 10, isFree: false },
-  { id: 4, templateId: 'tpl_004', name: '夕阳舞者', imageUrl: '/assets/figma/8255-8641.webp', city: '长沙', scenicSpot: '橘子洲', groupType: '花季少女', price: 10, isFree: false },
-  { id: 5, templateId: 'tpl_005', name: '古风红妆', imageUrl: '/assets/figma/8255-8650.webp', city: '北京', scenicSpot: '故宫', groupType: '花季少女', price: 15, isFree: false },
-  { id: 6, templateId: 'tpl_006', name: '清新少女', imageUrl: '/assets/figma/8255-8648.webp', city: '苏州', scenicSpot: '拙政园', groupType: '花季少女', price: 0, isFree: true },
+  { id: 1, templateId: 'tpl_001', name: '西湖春韵', imageUrl: '/assets/figma/8255-8618.webp', city: '杭州', scenicSpot: '西湖', groupType: 'girl_young', price: 0, isFree: true },
+  { id: 2, templateId: 'tpl_002', name: '橘子洲头', imageUrl: '/assets/figma/8255-8624.webp', city: '长沙', scenicSpot: '橘子洲', groupType: 'girl_young', price: 0, isFree: true },
+  { id: 3, templateId: 'tpl_003', name: '古典佳人', imageUrl: '/assets/figma/8255-8631.webp', city: '杭州', scenicSpot: '西湖', groupType: 'girl_young', price: 10, isFree: false },
+  { id: 4, templateId: 'tpl_004', name: '夕阳舞者', imageUrl: '/assets/figma/8255-8641.webp', city: '长沙', scenicSpot: '橘子洲', groupType: 'girl_young', price: 10, isFree: false },
+  { id: 5, templateId: 'tpl_005', name: '古风红妆', imageUrl: '/assets/figma/8255-8650.webp', city: '北京', scenicSpot: '故宫', groupType: 'girl_young', price: 15, isFree: false },
+  { id: 6, templateId: 'tpl_006', name: '清新少女', imageUrl: '/assets/figma/8255-8648.webp', city: '苏州', scenicSpot: '拙政园', groupType: 'girl_young', price: 0, isFree: true },
 ];
 
 export default function TemplateDetail() {

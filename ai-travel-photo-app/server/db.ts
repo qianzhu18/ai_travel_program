@@ -1706,6 +1706,7 @@ export async function getGroupTypeByCode(code: string) {
 export async function createGroupType(data: {
   code: string;
   displayName: string;
+  description?: string;
   photoType?: 'single' | 'group';
   sortOrder?: number;
 }) {
@@ -1715,6 +1716,7 @@ export async function createGroupType(data: {
   const result = await db.insert(groupTypes).values({
     code: data.code,
     displayName: data.displayName,
+    description: data.description ?? '',
     photoType: data.photoType || 'single',
     sortOrder: data.sortOrder || 0,
   });
@@ -1725,6 +1727,7 @@ export async function createGroupType(data: {
 export async function updateGroupType(id: number, data: {
   code?: string;
   displayName?: string;
+  description?: string;
   photoType?: 'single' | 'group';
   sortOrder?: number;
   isActive?: boolean;
@@ -1735,6 +1738,7 @@ export async function updateGroupType(id: number, data: {
   const updateData: any = {};
   if (data.code !== undefined) updateData.code = data.code;
   if (data.displayName !== undefined) updateData.displayName = data.displayName;
+  if (data.description !== undefined) updateData.description = data.description;
   if (data.photoType !== undefined) updateData.photoType = data.photoType;
   if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder;
   if (data.isActive !== undefined) updateData.isActive = data.isActive;

@@ -17,7 +17,7 @@ vi.mock("./db", () => ({
       thumbnailUrl: "https://example.com/thumb1.jpg",
       city: "杭州",
       scenicSpot: "西湖",
-      groupType: "花季少女",
+      groupType: "girl_young",
       photoType: "single",
       faceType: "both",
       price: 0,
@@ -36,7 +36,7 @@ vi.mock("./db", () => ({
       thumbnailUrl: "https://example.com/thumb2.jpg",
       city: "长沙",
       scenicSpot: "橘子洲",
-      groupType: "花季少女",
+      groupType: "girl_young",
       photoType: "single",
       faceType: "wide",
       price: 10,
@@ -57,7 +57,7 @@ vi.mock("./db", () => ({
     thumbnailUrl: "https://example.com/thumb1.jpg",
     city: "杭州",
     scenicSpot: "西湖",
-    groupType: "花季少女",
+    groupType: "girl_young",
     photoType: "single",
     faceType: "both",
     price: 0,
@@ -152,7 +152,7 @@ describe("template.list", () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
-    const result = await caller.template.list({ groupType: "花季少女" });
+    const result = await caller.template.list({ groupType: "girl_young" });
 
     expect(result).toBeDefined();
     expect(Array.isArray(result)).toBe(true);

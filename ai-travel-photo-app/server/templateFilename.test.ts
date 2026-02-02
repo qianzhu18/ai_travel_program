@@ -12,7 +12,8 @@ function parseTemplateFilename(filename: string): {
   const basename = filename.replace(/\.[^.]+$/, '');
   
   // 尝试匹配带脸型后缀的格式：groupType_randomCode_n 或 groupType_randomCode_w
-  const withFaceTypeMatch = basename.match(/^([a-z]+)_([a-zA-Z0-9]{5})_(n|w)$/i);
+  // 支持人群类型包含下划线（如 girl_young）
+  const withFaceTypeMatch = basename.match(/^([a-z_]+)_([a-zA-Z0-9]{5})_(n|w)$/i);
   if (withFaceTypeMatch) {
     const [, groupType, randomCode, faceTypeSuffix] = withFaceTypeMatch;
     const templateGroupId = `${groupType}_${randomCode}`.toLowerCase();
@@ -27,7 +28,8 @@ function parseTemplateFilename(filename: string): {
   }
   
   // 尝试匹配不带脸型后缀的格式：groupType_randomCode
-  const withoutFaceTypeMatch = basename.match(/^([a-z]+)_([a-zA-Z0-9]{5})$/i);
+  // 支持人群类型包含下划线（如 girl_young）
+  const withoutFaceTypeMatch = basename.match(/^([a-z_]+)_([a-zA-Z0-9]{5})$/i);
   if (withoutFaceTypeMatch) {
     const [, groupType, randomCode] = withoutFaceTypeMatch;
     const templateGroupId = `${groupType}_${randomCode}`.toLowerCase();
@@ -54,80 +56,80 @@ function parseTemplateFilename(filename: string): {
 describe('模板文件名解析', () => {
   describe('带脸型后缀的文件名', () => {
     it('应正确解析窄脸模板文件名', () => {
-      const result = parseTemplateFilename('shaonv_hhhh5_n.jpg');
+      const result = parseTemplateFilename('girl_young_hhhh5_n.jpg');
       
       expect(result.isValid).toBe(true);
-      expect(result.templateId).toBe('shaonv_hhhh5_n');
-      expect(result.templateGroupId).toBe('shaonv_hhhh5');
-      expect(result.groupType).toBe('shaonv');
+      expect(result.templateId).toBe('girl_young_hhhh5_n');
+      expect(result.templateGroupId).toBe('girl_young_hhhh5');
+      expect(result.groupType).toBe('girl_young');
       expect(result.faceType).toBe('narrow');
     });
     
     it('应正确解析宽脸模板文件名', () => {
-      const result = parseTemplateFilename('shaonv_hhhh5_w.jpg');
+      const result = parseTemplateFilename('girl_young_hhhh5_w.jpg');
       
       expect(result.isValid).toBe(true);
-      expect(result.templateId).toBe('shaonv_hhhh5_w');
-      expect(result.templateGroupId).toBe('shaonv_hhhh5');
-      expect(result.groupType).toBe('shaonv');
+      expect(result.templateId).toBe('girl_young_hhhh5_w');
+      expect(result.templateGroupId).toBe('girl_young_hhhh5');
+      expect(result.groupType).toBe('girl_young');
       expect(result.faceType).toBe('wide');
     });
     
     it('宽脸和窄脸模板应有相同的templateGroupId', () => {
-      const narrow = parseTemplateFilename('shunv_abc12_n.png');
-      const wide = parseTemplateFilename('shunv_abc12_w.png');
+      const narrow = parseTemplateFilename('woman_mature_abc12_n.png');
+      const wide = parseTemplateFilename('woman_mature_abc12_w.png');
       
       expect(narrow.templateGroupId).toBe(wide.templateGroupId);
-      expect(narrow.templateGroupId).toBe('shunv_abc12');
+      expect(narrow.templateGroupId).toBe('woman_mature_abc12');
     });
     
     it('应支持大写字母的文件名', () => {
-      const result = parseTemplateFilename('SHAONV_HHHH5_N.jpg');
+      const result = parseTemplateFilename('GIRL_YOUNG_HHHH5_N.jpg');
       
       expect(result.isValid).toBe(true);
-      expect(result.templateId).toBe('shaonv_hhhh5_n');
-      expect(result.templateGroupId).toBe('shaonv_hhhh5');
+      expect(result.templateId).toBe('girl_young_hhhh5_n');
+      expect(result.templateGroupId).toBe('girl_young_hhhh5');
       expect(result.faceType).toBe('narrow');
     });
     
     it('应支持混合大小写的文件名', () => {
-      const result = parseTemplateFilename('ShaoNv_HhHh5_W.jpg');
+      const result = parseTemplateFilename('Girl_Young_HhHh5_W.jpg');
       
       expect(result.isValid).toBe(true);
-      expect(result.templateId).toBe('shaonv_hhhh5_w');
+      expect(result.templateId).toBe('girl_young_hhhh5_w');
       expect(result.faceType).toBe('wide');
     });
   });
   
   describe('不带脸型后缀的文件名（通用模板）', () => {
     it('应正确解析通用模板文件名', () => {
-      const result = parseTemplateFilename('younv_abc12.jpg');
+      const result = parseTemplateFilename('boy_child_abc12.jpg');
       
       expect(result.isValid).toBe(true);
-      expect(result.templateId).toBe('younv_abc12');
-      expect(result.templateGroupId).toBe('younv_abc12');
-      expect(result.groupType).toBe('younv');
+      expect(result.templateId).toBe('boy_child_abc12');
+      expect(result.templateGroupId).toBe('boy_child_abc12');
+      expect(result.groupType).toBe('boy_child');
       expect(result.faceType).toBe('both');
     });
     
     it('应支持数字和字母混合的编码', () => {
-      const result = parseTemplateFilename('nainai_xy789.png');
+      const result = parseTemplateFilename('woman_elder_xy789.png');
       
       expect(result.isValid).toBe(true);
-      expect(result.templateId).toBe('nainai_xy789');
-      expect(result.groupType).toBe('nainai');
+      expect(result.templateId).toBe('woman_elder_xy789');
+      expect(result.groupType).toBe('woman_elder');
     });
   });
   
   describe('无效的文件名格式', () => {
     it('编码不足5位应返回无效', () => {
-      const result = parseTemplateFilename('shaonv_abc_n.jpg');
+      const result = parseTemplateFilename('girl_young_abc_n.jpg');
       
       expect(result.isValid).toBe(false);
     });
     
     it('编码超过5位应返回无效', () => {
-      const result = parseTemplateFilename('shaonv_abcdef_n.jpg');
+      const result = parseTemplateFilename('girl_young_abcdef_n.jpg');
       
       expect(result.isValid).toBe(false);
     });
@@ -147,22 +149,22 @@ describe('模板文件名解析', () => {
     });
     
     it('无扩展名的文件应正常解析', () => {
-      const result = parseTemplateFilename('shaonv_hhhh5_n');
+      const result = parseTemplateFilename('girl_young_hhhh5_n');
       
       expect(result.isValid).toBe(true);
-      expect(result.templateId).toBe('shaonv_hhhh5_n');
+      expect(result.templateId).toBe('girl_young_hhhh5_n');
     });
   });
   
   describe('各人群类型测试', () => {
     const testCases = [
-      { filename: 'shaonv_test1_n.jpg', groupType: 'shaonv', desc: '少女' },
-      { filename: 'shunv_test2_w.jpg', groupType: 'shunv', desc: '熟女' },
-      { filename: 'nainai_test3_n.jpg', groupType: 'nainai', desc: '奶奶' },
-      { filename: 'shaonan_test4_w.jpg', groupType: 'shaonan', desc: '少男' },
-      { filename: 'dashu_test5_n.jpg', groupType: 'dashu', desc: '大叔' },
-      { filename: 'younv_test6.jpg', groupType: 'younv', desc: '幼女（通用）' },
-      { filename: 'xiaoxiaoshaonan_a1b2c.jpg', groupType: 'xiaoxiaoshaonan', desc: '小小少年（通用）' },
+      { filename: 'girl_young_test1_n.jpg', groupType: 'girl_young', desc: '少女' },
+      { filename: 'woman_mature_test2_w.jpg', groupType: 'woman_mature', desc: '熟女' },
+      { filename: 'woman_elder_test3_n.jpg', groupType: 'woman_elder', desc: '奶奶' },
+      { filename: 'man_young_test4_w.jpg', groupType: 'man_young', desc: '少男' },
+      { filename: 'man_elder_test5_n.jpg', groupType: 'man_elder', desc: '大叔' },
+      { filename: 'girl_child_test6.jpg', groupType: 'girl_child', desc: '幼女（通用）' },
+      { filename: 'couple_love_a1b2c.jpg', groupType: 'couple_love', desc: '情侣（通用）' },
     ];
     
     testCases.forEach(({ filename, groupType, desc }) => {

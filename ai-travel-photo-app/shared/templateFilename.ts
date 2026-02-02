@@ -3,15 +3,15 @@
  * 
  * 文件名编码规则：人群类型_随机5位编码_脸型后缀
  * 示例：
- * - shaonv_hhhh5_n.jpg (窄脸)
- * - shaonv_hhhh5_w.jpg (宽脸)
- * - younv_abc12.jpg (不区分脸型)
+ * - girl_young_hhhh5_n.jpg (窄脸)
+ * - girl_young_hhhh5_w.jpg (宽脸)
+ * - girl_child_abc12.jpg (不区分脸型)
  */
 
 export interface ParsedFilename {
   // 原始文件名（不含扩展名）
   basename: string;
-  // 人群类型代码（如 shaonv, shunv）
+  // 人群类型代码（如 girl_young, woman_mature）
   groupType: string;
   // 随机编码部分（如 hhhh5, abc12）
   randomCode: string;
@@ -49,7 +49,8 @@ export function parseTemplateFilename(filename: string): ParsedFilename {
   };
   
   // 尝试匹配带脸型后缀的格式：groupType_randomCode_n 或 groupType_randomCode_w
-  const withFaceTypeMatch = basename.match(/^([a-z]+)_([a-zA-Z0-9]{5})_(n|w)$/i);
+  // 支持人群类型包含下划线（如 girl_young）
+  const withFaceTypeMatch = basename.match(/^([a-z_]+)_([a-zA-Z0-9]{5})_(n|w)$/i);
   if (withFaceTypeMatch) {
     const [, groupType, randomCode, faceTypeSuffix] = withFaceTypeMatch;
     const templateGroupId = `${groupType}_${randomCode}`.toLowerCase();
@@ -66,7 +67,8 @@ export function parseTemplateFilename(filename: string): ParsedFilename {
   }
   
   // 尝试匹配不带脸型后缀的格式：groupType_randomCode
-  const withoutFaceTypeMatch = basename.match(/^([a-z]+)_([a-zA-Z0-9]{5})$/i);
+  // 支持人群类型包含下划线（如 girl_young）
+  const withoutFaceTypeMatch = basename.match(/^([a-z_]+)_([a-zA-Z0-9]{5})$/i);
   if (withoutFaceTypeMatch) {
     const [, groupType, randomCode] = withoutFaceTypeMatch;
     const templateGroupId = `${groupType}_${randomCode}`.toLowerCase();
@@ -117,11 +119,11 @@ export function getFaceTypeFromFilename(filename: string): 'narrow' | 'wide' | '
  * 需要区分脸型的人群类型列表
  */
 export const FACE_TYPE_REQUIRED_GROUPS = [
-  'shaonv',   // 少女
-  'shunv',    // 熟女
-  'nainai',   // 奶奶
-  'shaonan',  // 少男
-  'dashu',    // 大叔
+  'girl_young',   // 少女
+  'woman_mature', // 熟女
+  'woman_elder',  // 奶奶
+  'man_young',    // 少男
+  'man_elder',    // 大叔
 ];
 
 /**

@@ -1,0 +1,1 @@
+ALTER TABLE `groupTypes` ADD `description` varchar(100) DEFAULT '' NOT NULL;

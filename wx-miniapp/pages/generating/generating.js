@@ -262,30 +262,103 @@ Page({
   // 分析脸型并创建生成任务
   async analyzeAndCreateTask(imageUrl, selectedTemplate) {
     try {
-      // 1. 分析脸型
-      this.setData({ progressText: '正在分析您的面部特征...' })
+      const faceTypeGroups = [
+        'girl_young',
+        'woman_mature',
+        'woman_elder',
+        'man_young',
+        'man_elder',
+        // 兼容旧代码
+        'shaonv',
+        'shunv',
+        'laonian',
+        'yuanqigege',
+        'ruizhidashu',
+      ]
+
+      const templateGroupType = selectedTemplate?.groupType || ''
+      const needFaceTypeMatch = faceTypeGroups.includes(templateGroupType)
 
       const userOpenId = wx.getStorageSync('userOpenId')
-      const analyzeResult = await photoApi.analyzeFace(imageUrl, userOpenId)
-
-      console.log('[Generating] 脸型分析结果:', analyzeResult)
-
-      // 保存脸型信息
       let detectedFaceType = null
-      if (analyzeResult.success) {
-        const userStatus = wx.getStorageSync('userStatus') || {}
-        userStatus.faceType = analyzeResult.faceType
-        userStatus.gender = analyzeResult.gender
-        userStatus.userType = analyzeResult.userType
-        wx.setStorageSync('userStatus', userStatus)
-        detectedFaceType = analyzeResult.faceType
 
-        this.setData({
-          progressText: `分析完成：${analyzeResult.userType || ''}${analyzeResult.faceType ? '，' + analyzeResult.faceType : ''}`
-        })
+      // 1. 只有需要区分宽窄脸的模板才做脸型分析（避免不必要的失败阻断）
+      if (needFaceTypeMatch) {
+        this.setData({ progressText: '正在分析您的面部特征...' })
+        const analyzeResult = await photoApi.analyzeFace(imageUrl, userOpenId)
 
-        // 短暂显示分析结果
-        await new Promise(resolve => setTimeout(resolve, 800))
+        console.log('[Generating] 脸型分析结果:', analyzeResult)
+
+        const hasAnalysisData = analyzeResult && analyzeResult.success && (
+          (typeof analyzeResult.faceType === 'string' && analyzeResult.faceType.trim() !== '') ||
+          (typeof analyzeResult.gender === 'string' && analyzeResult.gender.trim() !== '') ||
+          (typeof analyzeResult.userType === 'string' && analyzeResult.userType.trim() !== '')
+        )
+
+        if (!analyzeResult || !analyzeResult.success || !hasAnalysisData) {
+          const errorMsg = analyzeResult?.error || '人脸分析未返回有效结果，请更换照片或稍后重试'
+          const errorCode = analyzeResult?.errorCode
+          const retryable = analyzeResult?.retryable !== false
+          console.warn('[Generating] 人脸分析失败:', errorMsg)
+          this.setData({
+            showRetry: true,
+            progressText: errorMsg
+          })
+          this.stopCountdown()
+
+          if (!retryable) {
+            const extraHint =
+              errorCode === 'COZE_API_KEY_MISSING'
+                ? '\n\n请联系管理员完成 AI 服务配置后再试。'
+                : ''
+            wx.showModal({
+              title: '人脸分析失败',
+              content: `${errorMsg}${extraHint}`,
+              showCancel: false,
+              success: () => {
+                wx.redirectTo({
+                  url: errorCode === 'COZE_API_KEY_MISSING' ? '/pages/index/index' : '/pages/camera/camera'
+                })
+              }
+            })
+            return
+          }
+
+          const shouldContinue = await new Promise((resolve) => {
+            wx.showModal({
+              title: '人脸分析失败',
+              content: `${errorMsg}\n\n是否继续生成？（将使用默认模板，不做脸型匹配）`,
+              confirmText: '继续生成',
+              cancelText: '重新拍照',
+              success: (res) => resolve(!!res.confirm),
+              fail: () => resolve(false),
+            })
+          })
+
+          if (!shouldContinue) {
+            wx.redirectTo({
+              url: '/pages/camera/camera'
+            })
+            return
+          }
+
+          this.setData({ showRetry: false })
+        } else {
+          // 保存脸型信息
+          const userStatus = wx.getStorageSync('userStatus') || {}
+          userStatus.faceType = analyzeResult.faceType
+          userStatus.gender = analyzeResult.gender
+          userStatus.userType = analyzeResult.userType
+          wx.setStorageSync('userStatus', userStatus)
+          detectedFaceType = analyzeResult.faceType
+
+          this.setData({
+            progressText: `分析完成：${analyzeResult.userType || ''}${analyzeResult.faceType ? '，' + analyzeResult.faceType : ''}`
+          })
+
+          // 短暂显示分析结果
+          await new Promise(resolve => setTimeout(resolve, 800))
+        }
       }
 
       // 2. 创建生成任务

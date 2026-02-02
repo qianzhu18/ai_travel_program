@@ -968,23 +968,44 @@ export const appRouter = router({
           if (!result.success) {
             return { 
               success: false, 
-              error: result.errorMessage || '分析失败' 
+              error: result.errorMessage || '分析失败',
+              executeId: result.executeId,
+              workflowId: result.workflowId,
+              errorCode: result.errorCode,
+              retryable: result.retryable,
             };
           }
+
+          const hasAnalysisData = [result.faceType, result.gender, result.userType].some(
+            (value) => typeof value === 'string' && value.trim() !== ''
+          );
+          if (!hasAnalysisData) {
+            return {
+              success: false,
+              error: '用户判别结果为空，请更换照片或检查工作流输出',
+              executeId: result.executeId,
+              workflowId: result.workflowId,
+              errorCode: result.errorCode,
+              retryable: result.retryable,
+            };
+          }
+
+          const mappedUserType = coze.convertUserTypeToCode(result.userType) || result.userType;
 
           // 更新用户资料
           await db.updateUserProfile(ctx.user.id, {
             gender: result.gender,
-            userType: result.userType,
+            userType: mappedUserType,
             faceType: result.faceType,
           });
 
           return {
             success: true,
             executeId: result.executeId,
+            workflowId: result.workflowId,
             faceType: result.faceType,      // "宽脸" | "窄脸"
             gender: result.gender,          // "男" | "女"
-            userType: result.userType,      // "少女" | "熟女" 等
+            userType: mappedUserType,      // "少女" | "熟女" 等
             description: result.description,
             package: result.package,
           };
@@ -2079,6 +2100,33 @@ export const appRouter = router({
         }
       }),
 
+    // ==================== Coze 诊断工具（管理员） ====================
+
+    // 查看 Coze 工作流执行历史（用于排查 executeId 对应的 output / error）
+    cozeRunHistory: adminProcedure
+      .input(z.object({
+        workflowId: z.string().min(1),
+        executeId: z.string().min(1),
+      }))
+      .query(async ({ input }) => {
+        try {
+          const status = await coze.getWorkflowStatusWithRaw(input.workflowId, input.executeId);
+          return { success: true, ...status };
+        } catch (error: any) {
+          return { success: false, message: error?.message || String(error) };
+        }
+      }),
+
+    // 用指定图片 URL 直接触发一次用户判别（方便在后台复现问题）
+    cozeAnalyzeTest: adminProcedure
+      .input(z.object({
+        imageUrl: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await coze.analyzeUserFace({ userImageUrl: input.imageUrl });
+        return result;
+      }),
+
     // 上传IP形象图片
     uploadIpImage: adminProcedure
       .input(z.object({
@@ -2106,6 +2154,7 @@ export const appRouter = router({
       .input(z.object({
         code: z.string().min(1, '代码不能为空'),
         displayName: z.string().min(1, '显示名称不能为空'),
+        description: z.string().optional(),
         photoType: z.enum(['single', 'group']).default('single'),
         sortOrder: z.number().default(0),
       }))
@@ -2127,11 +2176,12 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         displayName: z.string().max(6, '显示名称不能超过6个字符').optional(),
+        description: z.string().optional(),
         isActive: z.boolean().optional(),
         sortOrder: z.number().min(1).max(7).optional(),
       }))
       .mutation(async ({ input }) => {
-        const { id, displayName, isActive, sortOrder } = input;
+        const { id, displayName, description, isActive, sortOrder } = input;
         
         // 如果要更新排序，需要自动调整其他项的排序以避免冲突
         if (sortOrder !== undefined) {
@@ -2139,8 +2189,9 @@ export const appRouter = router({
         }
         
         // 更新其他字段
-        const updateData: { displayName?: string; isActive?: boolean } = {};
+        const updateData: { displayName?: string; description?: string; isActive?: boolean } = {};
         if (displayName !== undefined) updateData.displayName = displayName;
+        if (description !== undefined) updateData.description = description;
         if (isActive !== undefined) updateData.isActive = isActive;
         if (Object.keys(updateData).length > 0) {
           await db.updateGroupType(id, updateData);
@@ -3595,8 +3646,28 @@ export const appRouter = router({
             return {
               success: false,
               error: result.errorMessage || '分析失败',
+              executeId: result.executeId,
+              workflowId: result.workflowId,
+              errorCode: result.errorCode,
+              retryable: result.retryable,
             };
           }
+
+          const hasAnalysisData = [result.faceType, result.gender, result.userType].some(
+            (value) => typeof value === 'string' && value.trim() !== ''
+          );
+          if (!hasAnalysisData) {
+            return {
+              success: false,
+              error: '用户判别结果为空，请更换照片或检查工作流输出',
+              executeId: result.executeId,
+              workflowId: result.workflowId,
+              errorCode: result.errorCode,
+              retryable: result.retryable,
+            };
+          }
+
+          const mappedUserType = coze.convertUserTypeToCode(result.userType) || result.userType;
 
           // 如果提供了 userOpenId，更新用户资料
           if (input.userOpenId) {
@@ -3604,7 +3675,7 @@ export const appRouter = router({
             if (user) {
               await db.updateUserProfile(user.id, {
                 gender: result.gender,
-                userType: result.userType,
+                userType: mappedUserType,
                 faceType: result.faceType,
               });
             }
@@ -3612,9 +3683,11 @@ export const appRouter = router({
 
           return {
             success: true,
+            executeId: result.executeId,
+            workflowId: result.workflowId,
             faceType: result.faceType,      // "宽脸" | "窄脸"
             gender: result.gender,          // "男" | "女"
-            userType: result.userType,      // "少女" | "熟女" 等
+            userType: mappedUserType,      // "少女" | "熟女" 等
             description: result.description,
           };
         } catch (error: any) {

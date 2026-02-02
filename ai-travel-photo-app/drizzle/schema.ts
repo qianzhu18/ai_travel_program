@@ -345,6 +345,7 @@ export const groupTypes = mysqlTable("groupTypes", {
   id: int("id").autoincrement().primaryKey(),
   code: varchar("code", { length: 50 }).notNull().unique(),
   displayName: varchar("displayName", { length: 20 }).notNull(),
+  description: varchar("description", { length: 100 }).default("").notNull(),
   photoType: mysqlEnum("photoType", ["single", "group"]).default("single").notNull(),
   sortOrder: int("sortOrder").default(0).notNull(),
   isActive: boolean("isActive").default(true).notNull(),

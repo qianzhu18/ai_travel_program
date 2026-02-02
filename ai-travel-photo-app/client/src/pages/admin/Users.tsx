@@ -55,6 +55,9 @@ export default function UsersPage() {
     searchTerm: searchTerm || undefined,
   });
 
+  // 获取人群类型，用于显示用户人群类型名称
+  const { data: groupTypes } = trpc.admin.groupTypes.useQuery();
+
   // 获取统计数据
   const { data: stats } = trpc.admin.userStats.useQuery();
 
@@ -68,6 +71,11 @@ export default function UsersPage() {
     if (filterRole !== 'all' && user.role !== filterRole) return false;
     return true;
   }) || [];
+
+  const getUserTypeLabel = (userType?: string | null) => {
+    if (!userType) return '-';
+    return groupTypes?.find((g: any) => g.code === userType)?.displayName || userType;
+  };
 
   return (
     <AdminLayout>
@@ -213,7 +221,7 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell className="text-sm">{user.email || '-'}</TableCell>
                       <TableCell>{user.gender || '-'}</TableCell>
-                      <TableCell>{user.userType || '-'}</TableCell>
+                      <TableCell>{getUserTypeLabel(user.userType)}</TableCell>
                       <TableCell>{user.points || 0}</TableCell>
                       <TableCell>
                         <Badge className={USER_ROLES[user.role as keyof typeof USER_ROLES]?.color || ''}>
@@ -279,7 +287,7 @@ export default function UsersPage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">人群类型</p>
-                    <p>{selectedUser.userType || '-'}</p>
+                    <p>{getUserTypeLabel(selectedUser.userType)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">脸型</p>

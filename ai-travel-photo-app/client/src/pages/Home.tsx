@@ -15,11 +15,13 @@ const DEMO_TEMPLATES = [
 
 // 默认人群类型（当API未返回时使用）
 const DEFAULT_GROUP_TYPES = [
-  { code: 'girl_young', displayName: '花季少女', photoType: 'single' as const },
-  { code: 'woman_mature', displayName: '熟龄姐姐', photoType: 'single' as const },
-  { code: 'man_young', displayName: '元气哥哥', photoType: 'single' as const },
-  { code: 'man_elder', displayName: '睿智大叔', photoType: 'single' as const },
-  { code: 'girl_child', displayName: '软萌娇娃', photoType: 'single' as const },
+  { code: 'girl_young', displayName: '少女', photoType: 'single' as const },
+  { code: 'woman_mature', displayName: '熟女', photoType: 'single' as const },
+  { code: 'man_young', displayName: '少男', photoType: 'single' as const },
+  { code: 'girl_child', displayName: '幼女', photoType: 'single' as const },
+  { code: 'boy_child', displayName: '幼男', photoType: 'single' as const },
+  { code: 'woman_elder', displayName: '奶奶', photoType: 'single' as const },
+  { code: 'man_elder', displayName: '大叔', photoType: 'single' as const },
 ];
 
 export default function Home() {

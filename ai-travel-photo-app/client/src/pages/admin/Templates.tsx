@@ -92,6 +92,25 @@ interface Template {
   updatedAt: Date;
 }
 
+const FACE_TYPE_SELECTABLE_GROUPS = ['girl_young', 'woman_mature', 'woman_elder', 'man_young', 'man_elder'];
+const getFaceTypeConfig = (groupType?: string) => {
+  if (!groupType) return 'unset' as const;
+  return FACE_TYPE_SELECTABLE_GROUPS.includes(groupType) ? 'selectable' as const : 'fixed-narrow' as const;
+};
+const normalizeFaceTypeForGroup = (
+  groupType: string,
+  faceType: 'wide' | 'narrow' | 'both'
+): 'wide' | 'narrow' | 'both' => {
+  const config = getFaceTypeConfig(groupType);
+  if (config === 'selectable') {
+    return faceType === 'wide' || faceType === 'narrow' ? faceType : 'narrow';
+  }
+  if (config === 'fixed-narrow') {
+    return 'narrow';
+  }
+  return faceType;
+};
+
 export default function TemplatesPage() {
   const { user } = useAdminAuth();
   const [, navigate] = useLocation();
@@ -102,8 +121,6 @@ export default function TemplatesPage() {
   const [filterFaceType, setFilterFaceType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  // 支持脸型选择的人群类型代码
-  const FACE_TYPE_SELECTABLE_GROUPS = ['girl_young', 'woman_mature', 'man_young', 'woman_elder', 'man_elder'];
   // 脸型筛选是否激活（仅当选择了支持脸型的人群类型时）
   const isFaceTypeFilterEnabled = filterGroupType !== 'all' && FACE_TYPE_SELECTABLE_GROUPS.includes(filterGroupType);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -139,7 +156,7 @@ export default function TemplatesPage() {
     scenicSpot: '',
     groupType: '',
     photoType: 'single' as 'single' | 'group',
-    faceType: 'both' as 'wide' | 'narrow' | 'both',
+    faceType: 'narrow' as 'wide' | 'narrow' | 'both',
     price: 0,
     isFree: false,
     prompt: '',
@@ -329,7 +346,7 @@ export default function TemplatesPage() {
       scenicSpot: '',
       groupType: '',
       photoType: 'single',
-      faceType: 'both',
+      faceType: 'narrow',
       price: 0,
       isFree: false,
       prompt: '',
@@ -340,6 +357,10 @@ export default function TemplatesPage() {
   // 打开编辑对话框
   const handleEdit = (template: Template) => {
     setEditingTemplate(template);
+    const normalizedFaceType = normalizeFaceTypeForGroup(
+      template.groupType,
+      template.faceType
+    );
     setFormData({
       templateId: template.templateId,
       name: template.name,
@@ -349,7 +370,7 @@ export default function TemplatesPage() {
       scenicSpot: template.scenicSpot,
       groupType: template.groupType,
       photoType: template.photoType,
-      faceType: template.faceType,
+      faceType: normalizedFaceType,
       price: template.price,
       isFree: template.isFree,
       prompt: template.prompt || '',
@@ -938,7 +959,20 @@ export default function TemplatesPage() {
                   <Label>人群类型</Label>
                   <Select 
                     value={batchEditData.groupType} 
-                    onValueChange={(v) => setBatchEditData({ ...batchEditData, groupType: v })}
+                    onValueChange={(v) => {
+                      const nextData = { ...batchEditData, groupType: v };
+                      if (v && v !== '__none__') {
+                        const config = getFaceTypeConfig(v);
+                        if (config === 'selectable') {
+                          if (nextData.faceType !== 'wide' && nextData.faceType !== 'narrow') {
+                            nextData.faceType = 'narrow';
+                          }
+                        } else if (config === 'fixed-narrow') {
+                          nextData.faceType = 'narrow';
+                        }
+                      }
+                      setBatchEditData(nextData);
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="不修改" />
@@ -953,20 +987,54 @@ export default function TemplatesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>脸型适配</Label>
-                  <Select 
-                    value={batchEditData.faceType} 
-                    onValueChange={(v) => setBatchEditData({ ...batchEditData, faceType: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="不修改" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">不修改</SelectItem>
-                      <SelectItem value="both">通用</SelectItem>
-                      <SelectItem value="wide">宽脸</SelectItem>
-                      <SelectItem value="narrow">窄脸</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {(() => {
+                    const batchFaceTypeConfig = batchEditData.groupType && batchEditData.groupType !== '__none__'
+                      ? getFaceTypeConfig(batchEditData.groupType)
+                      : 'unset';
+
+                    if (batchFaceTypeConfig === 'selectable') {
+                      return (
+                        <Select 
+                          value={batchEditData.faceType} 
+                          onValueChange={(v) => setBatchEditData({ ...batchEditData, faceType: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="不修改" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">不修改</SelectItem>
+                            <SelectItem value="narrow">窄脸</SelectItem>
+                            <SelectItem value="wide">宽脸</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      );
+                    }
+
+                    if (batchFaceTypeConfig === 'fixed-narrow') {
+                      return (
+                        <div className="h-10 px-3 flex items-center text-sm text-muted-foreground bg-muted/50 rounded-md border">
+                          窄脸 (固定)
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <Select 
+                        value={batchEditData.faceType} 
+                        onValueChange={(v) => setBatchEditData({ ...batchEditData, faceType: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="不修改" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">不修改</SelectItem>
+                          <SelectItem value="both">通用</SelectItem>
+                          <SelectItem value="wide">宽脸</SelectItem>
+                          <SelectItem value="narrow">窄脸</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -1419,7 +1487,18 @@ function TemplateForm({
           <Label>人群类型</Label>
           <Select 
             value={formData.groupType} 
-            onValueChange={(v) => setFormData({ ...formData, groupType: v })}
+            onValueChange={(v) => {
+              const config = getFaceTypeConfig(v);
+              let nextFaceType = formData.faceType;
+              if (config === 'selectable') {
+                if (nextFaceType !== 'wide' && nextFaceType !== 'narrow') {
+                  nextFaceType = 'narrow';
+                }
+              } else if (config === 'fixed-narrow') {
+                nextFaceType = 'narrow';
+              }
+              setFormData({ ...formData, groupType: v, faceType: nextFaceType });
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="选择人群类型" />
@@ -1433,19 +1512,37 @@ function TemplateForm({
         </div>
         <div className="space-y-2">
           <Label>脸型适配</Label>
-          <Select 
-            value={formData.faceType} 
-            onValueChange={(v) => setFormData({ ...formData, faceType: v })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="both">通用</SelectItem>
-              <SelectItem value="wide">宽脸</SelectItem>
-              <SelectItem value="narrow">窄脸</SelectItem>
-            </SelectContent>
-          </Select>
+          {(() => {
+            const faceTypeConfig = getFaceTypeConfig(formData.groupType);
+            if (faceTypeConfig === 'selectable') {
+              return (
+                <Select 
+                  value={formData.faceType} 
+                  onValueChange={(v) => setFormData({ ...formData, faceType: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="narrow">窄脸</SelectItem>
+                    <SelectItem value="wide">宽脸</SelectItem>
+                  </SelectContent>
+                </Select>
+              );
+            }
+            if (faceTypeConfig === 'fixed-narrow') {
+              return (
+                <div className="h-10 px-3 flex items-center text-sm text-muted-foreground bg-muted/50 rounded-md border">
+                  窄脸 (固定)
+                </div>
+              );
+            }
+            return (
+              <div className="h-10 px-3 flex items-center text-sm text-muted-foreground bg-muted/50 rounded-md border">
+                请先选择人群类型
+              </div>
+            );
+          })()}
         </div>
       </div>
 

@@ -1,9 +1,10 @@
 // app.js
 const websocket = require('./utils/websocket.js')
+const { API_BASE_URL } = require('./config.js')
 
 App({
   globalData: {
-    apiBaseUrl: 'http://localhost:3000', // 修改为你的API地址
+    apiBaseUrl: API_BASE_URL || 'http://localhost:3000', // 修改为你的API地址
     token: '',
     userInfo: null
   },
