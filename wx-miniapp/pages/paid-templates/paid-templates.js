@@ -733,6 +733,7 @@ Page({
     const leftColumn = []
 
     const rightColumn = []
+    const selectedSet = this.getSelectedIdSet()
 
 
 
@@ -741,6 +742,7 @@ Page({
       const idKey = String(tpl.id)
 
       tpl.__visible = this.visibleTemplateIds.has(idKey)
+      tpl.__selected = selectedSet.has(idKey)
 
       if (index % 2 === 0) {
 
@@ -1718,6 +1720,16 @@ Page({
 
   // ========== 模板多选功能 ==========
 
+  getSelectedIdSet() {
+    return new Set((this.data.selectedTemplates || []).map((id) => String(id)))
+  },
+
+  syncSelectedState() {
+    const templates = Array.isArray(this.data.templates) ? this.data.templates : []
+    const { leftColumn, rightColumn } = this.buildColumns(templates)
+    this.setData({ leftColumn, rightColumn })
+  },
+
 
 
   // 切换模板选中状态
@@ -1725,16 +1737,14 @@ Page({
   toggleTemplateSelect(e) {
 
     const rawId = e.currentTarget.dataset.id
-    const id = typeof rawId === 'number' ? rawId : Number(rawId)
-    if (!Number.isFinite(id)) {
-      return
-    }
+    const idKey = rawId === undefined || rawId === null ? '' : String(rawId)
+    if (!idKey) return
 
     let selectedTemplates = [...this.data.selectedTemplates]
 
 
 
-    const index = selectedTemplates.indexOf(id)
+    const index = selectedTemplates.indexOf(idKey)
 
     if (index > -1) {
 
@@ -1746,13 +1756,14 @@ Page({
 
       // 选中
 
-      selectedTemplates.push(id)
+      selectedTemplates.push(idKey)
 
     }
 
 
 
     this.setData({ selectedTemplates })
+    this.syncSelectedState()
 
     this.calculateTotal()
 
@@ -1790,7 +1801,8 @@ Page({
 
     // 找出所有选中的模板对象
 
-    const selectedObjs = templates.filter(t => selectedTemplates.includes(t.id))
+    const selectedSet = this.getSelectedIdSet()
+    const selectedObjs = templates.filter(t => selectedSet.has(String(t.id)))
 
 
 
@@ -1843,7 +1855,8 @@ Page({
       payAmount: 0,
 
       showCartBar: false
-
+    }, () => {
+      this.syncSelectedState()
     })
 
   },
@@ -1854,8 +1867,7 @@ Page({
 
   isTemplateSelected(templateId) {
 
-    const id = typeof templateId === 'number' ? templateId : Number(templateId)
-    return this.data.selectedTemplates.includes(id)
+    return this.getSelectedIdSet().has(String(templateId))
 
   },
 
@@ -2146,8 +2158,6 @@ Page({
   }
 
 })
-
-
 
 
 
