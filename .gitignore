@@ -27,3 +27,18 @@ ai-travel-photo-app/.manus/
 
 # WeChat Mini Program private config
 wx-miniapp/project.private.config.json
+
+# Local planning docs (do not commit)
+PHASE_3_PLAN.md
+STARTUP_GUIDE.md
+TROUBLESHOOTING.md
+ai_travel_前端功能梳理.md
+ai_travel_需求文档.md
+changelog.md
+doc.md
+todolog.md
+wx-miniapp/README.md
+wx-miniapp/images/README.md
+wx-miniapp/添加测试数据说明.md
+ai-travel-photo-app/REMOTION_GUIDE.md
+ai-travel-photo-app/todo.md
