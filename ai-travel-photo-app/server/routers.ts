@@ -65,6 +65,134 @@ async function ensurePublicUrl(relativeUrl: string): Promise<string> {
   return url;
 }
 
+async function resolveTemplateByFaceType(template: any, detectedFaceType?: string) {
+  const faceTypeGroups = ['girl_young', 'woman_mature', 'woman_elder', 'man_young', 'man_elder'];
+  const needFaceTypeMatch = faceTypeGroups.includes(template.groupType || '');
+
+  if (!needFaceTypeMatch || !detectedFaceType) {
+    return template;
+  }
+
+  const targetFaceType = coze.convertFaceTypeToDb(detectedFaceType);
+  if (!targetFaceType || targetFaceType === template.faceType) {
+    return template;
+  }
+
+  const matchingTemplate = await db.findMatchingTemplate({
+    originalTemplateId: template.id,
+    targetFaceType,
+  });
+
+  if (matchingTemplate) {
+    console.log(`[photo] 匹配到${detectedFaceType}模板:`, matchingTemplate.id);
+    return matchingTemplate;
+  }
+
+  console.warn(`[photo] 降级: 未找到${detectedFaceType}(${targetFaceType})模板，使用原模板 (id=${template.id}, faceType=${template.faceType})`);
+  return template;
+}
+
+async function runPublicFaceSwapTask(params: {
+  photoId: string;
+  template: any;
+  selfieUrl: string;
+  userOpenId?: string;
+}) {
+  const { photoId, template, selfieUrl, userOpenId } = params;
+  const photo = await db.getUserPhotoByPhotoId(photoId);
+  if (!photo) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+
+  try {
+    const rawTemplateImageUrl = template.hasMaskRegions && template.maskedImageUrl
+      ? template.maskedImageUrl
+      : template.imageUrl;
+
+    const [publicSelfieUrl, publicTemplateUrl] = await Promise.all([
+      ensurePublicUrl(selfieUrl),
+      ensurePublicUrl(rawTemplateImageUrl),
+    ]);
+
+    console.log('[photo] 开始换脸:', {
+      templateId: template.id,
+      selfieUrl: publicSelfieUrl,
+      templateImageUrl: publicTemplateUrl,
+    });
+
+    const { executeId, resultUrls } = await coze.faceSwapSingle({
+      userImageUrl: publicSelfieUrl,
+      templateImageUrls: [publicTemplateUrl],
+    });
+
+    console.log('[photo] Coze 返回结果:', { executeId, resultUrls });
+
+    if (resultUrls && resultUrls.length > 0 && resultUrls[0]) {
+      let finalResultUrl = resultUrls[0];
+      console.log('[photo] Coze返回原始URL:', finalResultUrl);
+
+      try {
+        const { downloadImage, restoreRegions } = await import('./imageMask');
+
+        if (template.hasMaskRegions && template.regionCacheUrl) {
+          const [swappedBuffer, regionCacheBuffer] = await Promise.all([
+            downloadImage(resultUrls[0]),
+            downloadImage(template.regionCacheUrl),
+          ]);
+          const restoredBuffer = await restoreRegions(swappedBuffer, regionCacheBuffer);
+          const fileKey = `photos/${photoId}_restored_${Date.now()}.jpg`;
+          const { url } = await storagePut(fileKey, restoredBuffer, 'image/jpeg');
+          finalResultUrl = url;
+          console.log('[photo] 遮盖还原后上传到COS:', finalResultUrl);
+        } else {
+          const imageBuffer = await downloadImage(resultUrls[0]);
+          const fileKey = `photos/${photoId}_${Date.now()}.jpg`;
+          const { url } = await storagePut(fileKey, imageBuffer, 'image/jpeg');
+          finalResultUrl = url;
+          console.log('[photo] 上传到COS:', finalResultUrl);
+        }
+      } catch (uploadError: any) {
+        console.error('[photo] 上传COS失败，使用原始URL:', uploadError.message);
+      }
+
+      await db.updateUserPhotoStatus(photo.id, {
+        status: 'completed',
+        workflowRunId: executeId,
+        resultUrl: finalResultUrl,
+        progress: 100,
+      });
+
+      if (userOpenId) {
+        notifyPhotoStatus(userOpenId, photoId, 'completed', [finalResultUrl]);
+      }
+
+      return { photoId, status: 'completed', resultUrl: finalResultUrl };
+    }
+
+    await db.updateUserPhotoStatus(photo.id, {
+      status: 'failed',
+      workflowRunId: executeId,
+      errorMessage: '换脸未生成结果图片',
+    });
+
+    if (userOpenId) {
+      notifyPhotoStatus(userOpenId, photoId, 'failed');
+    }
+
+    return { photoId, status: 'failed', error: '换脸未生成结果图片' };
+  } catch (error: any) {
+    console.error('[photo] 换脸失败:', error);
+    await db.updateUserPhotoStatus(photo.id, {
+      status: 'failed',
+      errorMessage: error.message,
+    });
+
+    if (userOpenId) {
+      notifyPhotoStatus(userOpenId, photoId, 'failed');
+    }
+
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
+  }
+}
+
 export const appRouter = router({
   system: systemRouter,
   
@@ -746,27 +874,7 @@ export const appRouter = router({
           throw new TRPCError({ code: 'NOT_FOUND', message: '模板不存在' });
         }
 
-        // 脸型模板匹配逻辑
-        // 只有这五种人群类型需要区分宽窄脸
-        const faceTypeGroups = ['girl_young', 'woman_mature', 'woman_elder', 'man_young', 'man_elder'];
-        const needFaceTypeMatch = faceTypeGroups.includes(template.groupType || '');
-
-        if (needFaceTypeMatch && input.detectedFaceType) {
-          const targetFaceType = coze.convertFaceTypeToDb(input.detectedFaceType);
-          if (targetFaceType && targetFaceType !== template.faceType) {
-            const matchingTemplate = await db.findMatchingTemplate({
-              originalTemplateId: template.id,
-              targetFaceType,
-            });
-            if (matchingTemplate) {
-              console.log(`[photo.createSinglePublic] 匹配到${input.detectedFaceType}模板:`, matchingTemplate.id);
-              template = matchingTemplate;
-            } else {
-              // P2: 降级策略日志 - 未找到匹配的脸型模板时，使用原模板
-              console.warn(`[photo.createSinglePublic] 降级: 未找到${input.detectedFaceType}(${targetFaceType})模板，使用原模板 (id=${template.id}, faceType=${template.faceType})`);
-            }
-          }
-        }
+        template = await resolveTemplateByFaceType(template, input.detectedFaceType);
 
         // 获取用户ID
         let userId = 0;
@@ -787,109 +895,78 @@ export const appRouter = router({
           detectedFaceType: input.detectedFaceType || null,
         });
 
-        const photo = await db.getUserPhotoByPhotoId(photoId);
-        if (!photo) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+        return await runPublicFaceSwapTask({
+          photoId,
+          template,
+          selfieUrl: input.selfieUrl,
+          userOpenId: input.userOpenId,
+        });
+      }),
 
-        // 调用 Coze 换脸（同步模式）
-        try {
-          const rawTemplateImageUrl = template.hasMaskRegions && template.maskedImageUrl
-            ? template.maskedImageUrl
-            : template.imageUrl;
-
-          // 确保所有图片 URL 都是公网可访问的
-          const [publicSelfieUrl, publicTemplateUrl] = await Promise.all([
-            ensurePublicUrl(input.selfieUrl),
-            ensurePublicUrl(rawTemplateImageUrl),
-          ]);
-
-          console.log('[photo.createSinglePublic] 开始换脸:', {
-            templateId: template.id,
-            selfieUrl: publicSelfieUrl,
-            templateImageUrl: publicTemplateUrl,
-          });
-
-          const { executeId, resultUrls } = await coze.faceSwapSingle({
-            userImageUrl: publicSelfieUrl,
-            templateImageUrls: [publicTemplateUrl],
-          });
-
-          console.log('[photo.createSinglePublic] Coze 返回结果:', { executeId, resultUrls });
-
-          if (resultUrls && resultUrls.length > 0 && resultUrls[0]) {
-            let finalResultUrl = resultUrls[0];
-            console.log('[photo.createSinglePublic] Coze返回原始URL:', finalResultUrl);
-
-            // 下载 Coze 返回的图片并上传到 COS（Coze 返回短链接，小程序无法直接加载）
-            try {
-              const { downloadImage, restoreRegions } = await import('./imageMask');
-
-              // 如果模板有遮盖区域，需要还原
-              if (template.hasMaskRegions && template.regionCacheUrl) {
-                const [swappedBuffer, regionCacheBuffer] = await Promise.all([
-                  downloadImage(resultUrls[0]),
-                  downloadImage(template.regionCacheUrl),
-                ]);
-                const restoredBuffer = await restoreRegions(swappedBuffer, regionCacheBuffer);
-                const fileKey = `photos/${photoId}_restored_${Date.now()}.jpg`;
-                const { url } = await storagePut(fileKey, restoredBuffer, 'image/jpeg');
-                finalResultUrl = url;
-                console.log('[photo.createSinglePublic] 遮盖还原后上传到COS:', finalResultUrl);
-              } else {
-                // 无遮盖区域，直接下载并上传到 COS
-                const imageBuffer = await downloadImage(resultUrls[0]);
-                const fileKey = `photos/${photoId}_${Date.now()}.jpg`;
-                const { url } = await storagePut(fileKey, imageBuffer, 'image/jpeg');
-                finalResultUrl = url;
-                console.log('[photo.createSinglePublic] 上传到COS:', finalResultUrl);
-              }
-            } catch (uploadError: any) {
-              console.error('[photo.createSinglePublic] 上传COS失败，使用原始URL:', uploadError.message);
-              // 上传失败时仍使用原始 URL，让前端尝试处理
-            }
-
-            console.log('[photo.createSinglePublic] 更新数据库状态为completed');
-            await db.updateUserPhotoStatus(photo.id, {
-              status: 'completed',
-              workflowRunId: executeId,
-              resultUrl: finalResultUrl,
-              progress: 100,
-            });
-
-            // 发送 WebSocket 通知
-            if (input.userOpenId) {
-              notifyPhotoStatus(input.userOpenId, photoId, 'completed', [finalResultUrl]);
-            }
-
-            console.log('[photo.createSinglePublic] 返回成功结果:', { photoId, status: 'completed', resultUrl: finalResultUrl });
-            return { photoId, status: 'completed', resultUrl: finalResultUrl };
-          } else {
-            await db.updateUserPhotoStatus(photo.id, {
-              status: 'failed',
-              workflowRunId: executeId,
-              errorMessage: '换脸未生成结果图片',
-            });
-
-            // 发送 WebSocket 失败通知
-            if (input.userOpenId) {
-              notifyPhotoStatus(input.userOpenId, photoId, 'failed');
-            }
-
-            return { photoId, status: 'failed', error: '换脸未生成结果图片' };
-          }
-        } catch (error: any) {
-          console.error('[photo.createSinglePublic] 换脸失败:', error);
-          await db.updateUserPhotoStatus(photo.id, {
-            status: 'failed',
-            errorMessage: error.message,
-          });
-
-          // 发送 WebSocket 失败通知
-          if (input.userOpenId) {
-            notifyPhotoStatus(input.userOpenId, photoId, 'failed');
-          }
-
-          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: error.message });
+    // 公开批量换脸接口（小程序使用，不需要登录）
+    createBatchPublic: publicProcedure
+      .input(z.object({
+        userOpenId: z.string(),
+        templateIds: z.array(z.number()),
+        selfieUrl: z.string(),
+        detectedFaceType: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        if (!input.templateIds || input.templateIds.length === 0) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '模板参数缺失' });
         }
+
+        let user = await db.getUserByOpenId(input.userOpenId);
+        if (!user) {
+          user = await db.createUser({
+            openId: input.userOpenId,
+            loginMethod: 'miniprogram',
+            role: 'user',
+            points: 10,
+            initialFreeCredits: 10,
+            hasUsedFreeCredits: false,
+          });
+        }
+
+        const photoIds: string[] = [];
+
+        for (const templateId of input.templateIds) {
+          let template = await db.getTemplateById(templateId);
+          if (!template) {
+            console.warn('[photo.createBatchPublic] 模板不存在:', templateId);
+            continue;
+          }
+
+          template = await resolveTemplateByFaceType(template, input.detectedFaceType);
+
+          const photoId = await db.generatePhotoId();
+          await db.createUserPhoto({
+            photoId,
+            userId: user?.id || 0,
+            templateId: template.id,
+            selfieUrl: input.selfieUrl,
+            photoType: 'single',
+            status: 'pending',
+            detectedFaceType: input.detectedFaceType || null,
+          });
+
+          photoIds.push(photoId);
+
+          void runPublicFaceSwapTask({
+            photoId,
+            template,
+            selfieUrl: input.selfieUrl,
+            userOpenId: input.userOpenId,
+          }).catch((error) => {
+            console.error('[photo.createBatchPublic] 后台任务失败:', error);
+          });
+        }
+
+        if (photoIds.length === 0) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '模板不存在' });
+        }
+
+        return { photoIds };
       }),
 
     // 公开查询照片状态（小程序使用）

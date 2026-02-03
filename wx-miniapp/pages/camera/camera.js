@@ -8,7 +8,8 @@ Page({
     tempPhotoPath: '',
     analyzing: false, // 是否正在分析脸型
     analyzeStatus: '', // 分析状态提示
-    mode: '' // updateSelfie | ''
+    mode: '', // updateSelfie | ''
+    from: ''
   },
 
   onLoad(options = {}) {
@@ -16,7 +17,8 @@ Page({
     const systemInfo = wx.getSystemInfoSync()
     this.setData({
       statusBarHeight: systemInfo.statusBarHeight || 20,
-      mode: options.mode || ''
+      mode: options.mode || '',
+      from: options.from || ''
     })
 
     // 创建相机上下文
@@ -25,7 +27,19 @@ Page({
 
   // 返回上一页
   goBack() {
-    wx.navigateBack()
+    const pages = getCurrentPages()
+    if (pages.length > 1) {
+      wx.navigateBack()
+      return
+    }
+
+    const from = this.data.from
+    if (from === 'paid-templates') {
+      wx.redirectTo({ url: '/pages/paid-templates/paid-templates?from=camera' })
+      return
+    }
+
+    wx.redirectTo({ url: '/pages/index/index' })
   },
 
   // 拍照

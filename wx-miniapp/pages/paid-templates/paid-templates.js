@@ -1,6 +1,6 @@
 // P8 付费模板选择页 - 老用户入口
 
-const { templateApi } = require('../../utils/api.js')
+const { templateApi, photoApi } = require('../../utils/api.js')
 
 const { request } = require('../../utils/request.js')
 
@@ -132,6 +132,9 @@ Page({
 
 
   onLoad(options) {
+    this.setData({
+      from: options?.from || ''
+    })
 
     // 获取状态栏高度
 
@@ -1982,9 +1985,19 @@ Page({
         url: '/api/trpc/mp.getUserStatus',
         data: { userOpenId }
       })
-      const lastSelfieUrl = userStatus?.lastSelfieUrl
+      let lastSelfieUrl = userStatus?.lastSelfieUrl
 
-
+      if (!lastSelfieUrl) {
+        const cachedSelfieUrl = wx.getStorageSync('originalImageUrl')
+        if (cachedSelfieUrl) {
+          try {
+            await photoApi.saveSelfie(userOpenId, cachedSelfieUrl)
+            lastSelfieUrl = cachedSelfieUrl
+          } catch (error) {
+            console.error('补写自拍失败:', error)
+          }
+        }
+      }
 
       if (!lastSelfieUrl) {
 
@@ -2017,7 +2030,7 @@ Page({
 
       }
 
-      wx.setStorageSync('userStatus', userStatus)
+      wx.setStorageSync('userStatus', { ...(userStatus || {}), lastSelfieUrl })
 
       const templateIdNums = selectedTemplates.map((id) => Number(id)).filter((n) => Number.isFinite(n))
       if (templateIdNums.length === 0) {
@@ -2045,7 +2058,8 @@ Page({
 
           templateIds: templateIdNums,
 
-          selfieUrl: lastSelfieUrl
+          selfieUrl: lastSelfieUrl,
+          detectedFaceType: userStatus?.faceType
 
         }
 
@@ -2128,19 +2142,17 @@ Page({
   // 返回我的照片页面
 
   goBack() {
+    const from = this.data.from
+    if (from === 'result' || from === 'camera' || from === 'generating') {
+      wx.redirectTo({ url: '/pages/camera/camera' })
+      return
+    }
 
     wx.navigateBack({
       fail: () => {
-        // 例如从结果页 redirect 进入 P8 时，栈里没有上一页
         wx.redirectTo({ url: '/pages/camera/camera' })
       }
     })
-
   }
 
 })
-
-
-
-
-

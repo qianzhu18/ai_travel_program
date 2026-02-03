@@ -511,16 +511,16 @@ page {
 
 .ip-avatar-wrapper {
   flex-shrink: 0;
-  width: 140rpx;
-  height: 140rpx;
+  width: 170rpx;
+  height: 170rpx;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .ip-avatar-img {
-  width: 140rpx;
-  height: 140rpx;
+  width: 170rpx;
+  height: 170rpx;
 }
 
 .ip-avatar {
@@ -539,23 +539,23 @@ page {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6rpx;
+  gap: 4rpx;
 }
 
 .cart-main {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   gap: 6rpx;
   line-height: 1;
 }
 
 .cart-label {
-  font-size: 24rpx;
+  font-size: 22rpx;
   color: #8a7c73;
 }
 
 .cart-price {
-  font-size: 44rpx;
+  font-size: 48rpx;
   font-weight: 600;
   color: #e89a8d;
 }
@@ -563,22 +563,17 @@ page {
 .cart-unit {
   font-size: 24rpx;
   color: #e89a8d;
+  margin-left: -2rpx;
 }
 
 .cart-sub {
   display: flex;
   flex-wrap: wrap;
-  gap: 8rpx;
-  font-size: 22rpx;
-  color: #bcaea8;
-}
-
-.cart-sub {
-  display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 6rpx 16rpx;
   font-size: 22rpx;
-  color: #999;
+  color: #b3a39d;
+  line-height: 1.2;
 }
 
 .cart-deduct {

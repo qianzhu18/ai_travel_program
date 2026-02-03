@@ -5,12 +5,12 @@ const app = getApp()
  * 发起网络请求
  */
 function request(options) {
-  const { url, method = 'GET', data = {}, hideLoading = false } = options
+  const { url, method = 'GET', data = {}, showLoading = false } = options
 
-  // 显示加载提示
-  // if (!hideLoading) {
-  //   wx.showLoading({ title: '加载中...', mask: true })
-  // }
+  // 显示加载提示（仅在显式开启时）
+  if (showLoading) {
+    wx.showLoading({ title: '加载中...', mask: true })
+  }
 
   // 如果是 tRPC 请求，需要特殊处理
   let requestUrl = url
@@ -42,12 +42,19 @@ function request(options) {
         'Authorization': app.globalData.token ? `Bearer ${app.globalData.token}` : ''
       },
       success: (res) => {
-        wx.hideLoading()
+        if (showLoading) {
+          wx.hideLoading()
+        }
 
         if (res.statusCode === 200) {
           // tRPC 返回格式：{ result: { data: [...] } }
           if (url.startsWith('/api/trpc/')) {
             console.log('=== tRPC 完整响应 ===', res.data)
+            if (res.data?.error) {
+              const errMsg = res.data?.error?.message || '请求失败'
+              reject(new Error(errMsg))
+              return
+            }
             // tRPC query 返回格式是 { result: { data: { json: [...], meta: {...} } } }
             const result = res.data?.result?.data?.json ?? res.data?.result?.data
             console.log('=== 解析后的结果 ===', result)
@@ -86,7 +93,9 @@ function request(options) {
         }
       },
       fail: (err) => {
-        wx.hideLoading()
+        if (showLoading) {
+          wx.hideLoading()
+        }
         console.error('请求失败:', err)
         wx.showToast({
           title: '网络请求失败',
