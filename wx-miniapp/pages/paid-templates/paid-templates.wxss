@@ -511,11 +511,16 @@ page {
 
 .ip-avatar-wrapper {
   flex-shrink: 0;
+  width: 140rpx;
+  height: 140rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ip-avatar-img {
-  width: 110rpx;
-  height: 110rpx;
+  width: 140rpx;
+  height: 140rpx;
 }
 
 .ip-avatar {
@@ -534,22 +539,23 @@ page {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4rpx;
+  gap: 6rpx;
 }
 
 .cart-main {
   display: flex;
   align-items: baseline;
-  gap: 4rpx;
+  gap: 6rpx;
+  line-height: 1;
 }
 
 .cart-label {
   font-size: 24rpx;
-  color: #666;
+  color: #8a7c73;
 }
 
 .cart-price {
-  font-size: 40rpx;
+  font-size: 44rpx;
   font-weight: 600;
   color: #e89a8d;
 }
@@ -557,6 +563,14 @@ page {
 .cart-unit {
   font-size: 24rpx;
   color: #e89a8d;
+}
+
+.cart-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  font-size: 22rpx;
+  color: #bcaea8;
 }
 
 .cart-sub {
