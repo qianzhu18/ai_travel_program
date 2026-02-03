@@ -264,9 +264,8 @@ Page({
 
   // ========== 返回/再来一张 ==========
   goBack() {
-    wx.redirectTo({
-      url: '/pages/paid-templates/paid-templates'
-    })
+    // 结果页通常由 generating redirect 而来，页面栈里没有上一级，直接回到拍照页
+    wx.redirectTo({ url: '/pages/camera/camera' })
   },
 
   // 点击IP头像（预留功能）
@@ -324,19 +323,7 @@ Page({
     wx.removeStorageSync('resultImageUrls')
     wx.removeStorageSync('photoId')
     wx.removeStorageSync('originalImageUrl')
-
-    const template = await this.ensureTemplateForAgain()
-    if (!template) {
-      wx.showToast({
-        title: '请先选择模板',
-        icon: 'none'
-      })
-      wx.redirectTo({
-        url: '/pages/index/index'
-      })
-      return
-    }
-
-    this.navigateToCamera()
+    // 再来一张：进入 P8 付费模板选择页（复用服务器里已保存的自拍）
+    wx.redirectTo({ url: '/pages/paid-templates/paid-templates?from=result' })
   }
 })

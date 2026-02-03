@@ -92,19 +92,20 @@ Page({
       // 保存照片URL到Storage，供generating页面使用
       wx.setStorageSync('originalImageUrl', imageUrl)
 
-      if (this.data.mode === 'updateSelfie') {
-        const userOpenId = wx.getStorageSync('userOpenId')
-        if (userOpenId) {
-          try {
-            await photoApi.saveSelfie(userOpenId, imageUrl)
-            const userStatus = wx.getStorageSync('userStatus') || {}
-            userStatus.lastSelfieUrl = imageUrl
-            wx.setStorageSync('userStatus', userStatus)
-          } catch (error) {
-            console.error('保存自拍失败:', error)
-          }
+      // 首次拍照后也将自拍写入服务器用户资料，供后续付费模板复用
+      const userOpenId = wx.getStorageSync('userOpenId')
+      if (userOpenId) {
+        try {
+          await photoApi.saveSelfie(userOpenId, imageUrl)
+          const userStatus = wx.getStorageSync('userStatus') || {}
+          userStatus.lastSelfieUrl = imageUrl
+          wx.setStorageSync('userStatus', userStatus)
+        } catch (error) {
+          console.error('保存自拍失败:', error)
         }
+      }
 
+      if (this.data.mode === 'updateSelfie') {
         wx.hideLoading()
         wx.showToast({ title: '自拍已更新', icon: 'success' })
         wx.navigateBack()

@@ -1899,50 +1899,18 @@ Page({
 
     }
 
+    // 积分完全抵扣：不弹“确认支付”提示，直接进入生成等待页
+    if (payAmount === 0) {
+      await this.createPhotos()
+      return
+    }
 
-
-    // 显示支付确认
-
-    const confirmText = payAmount > 0
-
-      ? `共消耗${totalPoints}积分，已抵扣${deductPoints}分，还需支付${payAmount}元`
-
-      : `共消耗${totalPoints}积分，已完全抵扣，无需支付现金`
-
-
-
+    // 需要现金：后续再接入微信支付（当前版本不处理支付链路）
     wx.showModal({
-
-      title: '确认支付',
-
-      content: confirmText,
-
-      confirmText: '确认',
-
-      cancelText: '取消',
-
-      success: async (res) => {
-
-        if (res.confirm) {
-
-          if (payAmount === 0) {
-
-            // 积分完全抵扣，直接创建订单
-
-            await this.createPhotos()
-
-          } else {
-
-            // 需要微信支付
-
-            await this.wxPay()
-
-          }
-
-        }
-
-      }
-
+      title: '暂不支持微信支付',
+      content: `本次还需支付${payAmount}元（已抵扣${deductPoints}积分，共消耗${totalPoints}积分）。当前版本暂未接入微信支付。`,
+      confirmText: '我知道了',
+      showCancel: false
     })
 
   },
@@ -2009,10 +1977,11 @@ Page({
 
     try {
 
-      // 获取用户最后一次上传的自拍照
-
-      const userStatus = wx.getStorageSync('userStatus')
-
+      // 统一从服务器读取用户状态（避免本地 Storage 丢失导致“未找到自拍照”）
+      const userStatus = await request({
+        url: '/api/trpc/mp.getUserStatus',
+        data: { userOpenId }
+      })
       const lastSelfieUrl = userStatus?.lastSelfieUrl
 
 
@@ -2027,16 +1996,15 @@ Page({
 
           content: '未找到自拍照，请先上传自拍',
 
-          confirmText: '去上传',
+          confirmText: '去拍照',
+          cancelText: '取消',
 
           success: (res) => {
 
             if (res.confirm) {
 
-              wx.redirectTo({
-
-                url: '/pages/index/index'
-
+              wx.navigateTo({
+                url: '/pages/camera/camera?mode=updateSelfie&from=paid-templates'
               })
 
             }
@@ -2048,6 +2016,18 @@ Page({
         return
 
       }
+
+      wx.setStorageSync('userStatus', userStatus)
+
+      const templateIdNums = selectedTemplates.map((id) => Number(id)).filter((n) => Number.isFinite(n))
+      if (templateIdNums.length === 0) {
+        throw new Error('模板参数缺失')
+      }
+
+      // 生成页轮播需要模板对象，提前缓存
+      const selectedSet = new Set(templateIdNums.map((n) => String(n)))
+      const selectedObjs = (this.data.templates || []).filter((t) => selectedSet.has(String(t.id)))
+      wx.setStorageSync('selectedTemplates', selectedObjs)
 
 
 
@@ -2063,7 +2043,7 @@ Page({
 
           userOpenId,
 
-          templateIds: selectedTemplates,
+          templateIds: templateIdNums,
 
           selfieUrl: lastSelfieUrl
 
@@ -2087,7 +2067,7 @@ Page({
 
           photoIds: result.photoIds,
 
-          photoCount: selectedTemplates.length
+          photoCount: templateIdNums.length
 
         })
 
@@ -2149,18 +2129,16 @@ Page({
 
   goBack() {
 
-    wx.redirectTo({
-
-      url: '/pages/my-photos/my-photos'
-
+    wx.navigateBack({
+      fail: () => {
+        // 例如从结果页 redirect 进入 P8 时，栈里没有上一页
+        wx.redirectTo({ url: '/pages/camera/camera' })
+      }
     })
 
   }
 
 })
-
-
-
 
 
 
