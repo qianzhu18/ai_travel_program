@@ -4,17 +4,21 @@ import { trpc } from '@/lib/trpc';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { getLoginUrl } from '@/const';
 
-type TemplateSnapshot = {
-  id: number;
-  name: string;
-  imageUrl: string;
-};
+// 示例模板数据
+const DEMO_TEMPLATES = [
+  { id: 1, templateId: 'tpl_001', name: '西湖春韵', imageUrl: '/assets/figma/8255-8618.webp', city: '杭州', scenicSpot: '西湖', groupType: '花季少女', price: 0, isFree: true },
+  { id: 2, templateId: 'tpl_002', name: '橘子洲头', imageUrl: '/assets/figma/8255-8624.webp', city: '长沙', scenicSpot: '橘子洲', groupType: '花季少女', price: 0, isFree: true },
+  { id: 3, templateId: 'tpl_003', name: '古典佳人', imageUrl: '/assets/figma/8255-8631.webp', city: '杭州', scenicSpot: '西湖', groupType: '花季少女', price: 10, isFree: false },
+  { id: 4, templateId: 'tpl_004', name: '夕阳舞者', imageUrl: '/assets/figma/8255-8641.webp', city: '长沙', scenicSpot: '橘子洲', groupType: '花季少女', price: 10, isFree: false },
+  { id: 5, templateId: 'tpl_005', name: '古风红妆', imageUrl: '/assets/figma/8255-8650.webp', city: '北京', scenicSpot: '故宫', groupType: '花季少女', price: 15, isFree: false },
+  { id: 6, templateId: 'tpl_006', name: '清新少女', imageUrl: '/assets/figma/8255-8648.webp', city: '苏州', scenicSpot: '拙政园', groupType: '花季少女', price: 0, isFree: true },
+];
 
 export default function TemplateDetail() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { isAuthenticated } = useAuth();
-  const [localTemplate, setLocalTemplate] = useState<TemplateSnapshot | null>(null);
+  const [localTemplate, setLocalTemplate] = useState<typeof DEMO_TEMPLATES[0] | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -22,20 +26,14 @@ export default function TemplateDetail() {
   // 从 localStorage 获取模板信息
   useEffect(() => {
     const savedTemplate = localStorage.getItem('selectedTemplate');
-    if (!savedTemplate) {
-      setLocalTemplate(null);
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(savedTemplate);
-      if (parsed && Number(parsed.id) === Number(id) && parsed.imageUrl) {
-        setLocalTemplate(parsed);
-      } else {
-        setLocalTemplate(null);
+    if (savedTemplate) {
+      setLocalTemplate(JSON.parse(savedTemplate));
+    } else {
+      // 如果没有保存的模板，使用示例数据
+      const demo = DEMO_TEMPLATES.find(t => t.id === parseInt(id || '0'));
+      if (demo) {
+        setLocalTemplate(demo);
       }
-    } catch {
-      setLocalTemplate(null);
     }
   }, [id]);
 

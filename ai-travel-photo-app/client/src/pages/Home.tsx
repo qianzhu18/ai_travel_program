@@ -3,12 +3,24 @@ import { useLocation, useSearch } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 
-type TemplateCard = {
-  id: number;
-  name?: string;
-  imageUrl: string;
-  sortOrder?: number;
-};
+// 示例模板数据（用于展示，实际从 API 获取）
+const DEMO_TEMPLATES = [
+  { id: 1, templateId: 'tpl_001', name: '西湖春韵', imageUrl: '/assets/figma/8255-8618.webp', city: '杭州', scenicSpot: '西湖', groupType: 'girl_young', price: 0, isFree: true, sortOrder: 1 },
+  { id: 2, templateId: 'tpl_002', name: '橘子洲头', imageUrl: '/assets/figma/8255-8624.webp', city: '长沙', scenicSpot: '橘子洲', groupType: 'girl_young', price: 0, isFree: true, sortOrder: 2 },
+  { id: 3, templateId: 'tpl_003', name: '古典佳人', imageUrl: '/assets/figma/8255-8631.webp', city: '杭州', scenicSpot: '西湖', groupType: 'girl_young', price: 10, isFree: false, sortOrder: 3 },
+  { id: 4, templateId: 'tpl_004', name: '夕阳舞者', imageUrl: '/assets/figma/8255-8641.webp', city: '长沙', scenicSpot: '橘子洲', groupType: 'girl_young', price: 10, isFree: false, sortOrder: 4 },
+  { id: 5, templateId: 'tpl_005', name: '古风红妆', imageUrl: '/assets/figma/8255-8650.webp', city: '北京', scenicSpot: '故宫', groupType: 'girl_young', price: 15, isFree: false, sortOrder: 5 },
+  { id: 6, templateId: 'tpl_006', name: '清新少女', imageUrl: '/assets/figma/8255-8648.webp', city: '苏州', scenicSpot: '拙政园', groupType: 'girl_young', price: 0, isFree: true, sortOrder: 6 },
+];
+
+// 默认人群类型（当API未返回时使用）
+const DEFAULT_GROUP_TYPES = [
+  { code: 'girl_young', displayName: '花季少女', photoType: 'single' as const },
+  { code: 'woman_mature', displayName: '熟龄姐姐', photoType: 'single' as const },
+  { code: 'man_young', displayName: '元气哥哥', photoType: 'single' as const },
+  { code: 'man_elder', displayName: '睿智大叔', photoType: 'single' as const },
+  { code: 'girl_child', displayName: '软萌娇娃', photoType: 'single' as const },
+];
 
 export default function Home() {
   const [, navigate] = useLocation();
@@ -100,8 +112,11 @@ export default function Home() {
 
   // 获取人群类型列表
   const { data: groupTypesData } = trpc.template.groupTypes.useQuery({ photoType: 'single' });
-
-  const groupTypes = Array.isArray(groupTypesData) ? groupTypesData : [];
+  
+  // 使用API数据或默认数据
+  const groupTypes = groupTypesData && groupTypesData.length > 0 
+    ? groupTypesData 
+    : DEFAULT_GROUP_TYPES;
 
   // 设置默认选中的人群类型
   useEffect(() => {
@@ -116,7 +131,10 @@ export default function Home() {
     { enabled: !!activeGroupCode }
   );
 
-  const displayTemplates: TemplateCard[] = Array.isArray(templates) ? templates as TemplateCard[] : [];
+  // 使用 API 数据或示例数据
+  const displayTemplates = templates && templates.length > 0 
+    ? templates 
+    : DEMO_TEMPLATES.filter(t => t.groupType === activeGroupCode);
 
   // 实现瀑布流布局：按sortOrder排序，奇数放左列，偶数放右列
   const { leftColumn, rightColumn } = useMemo(() => {
@@ -139,7 +157,7 @@ export default function Home() {
   }, [displayTemplates]);
 
   // 点击模板跳转到详情页
-  const handleTemplateClick = (template: TemplateCard) => {
+  const handleTemplateClick = (template: typeof DEMO_TEMPLATES[0]) => {
     // 保存选中的模板信息
     localStorage.setItem('selectedTemplate', JSON.stringify(template));
     navigate(`/template/${template.id}`);

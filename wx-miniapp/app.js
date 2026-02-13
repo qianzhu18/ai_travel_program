@@ -10,32 +10,11 @@ App({
 
   onLaunch() {
     console.log('小程序启动')
-    this.clearLegacyTemplateLocalData()
     // 自动登录（暂时禁用，因为后端还未实现）
     // this.autoLogin()
 
     // 初始化 WebSocket 连接
     this.initWebSocket()
-  },
-
-  clearLegacyTemplateLocalData() {
-    try {
-      const info = wx.getStorageInfoSync()
-      const prefixes = ['templateCache:p1:', 'templateCache:p8:']
-      const staticKeys = ['templateVersion', 'lastSelectedTemplate']
-
-      const keysToRemove = info.keys.filter((key) => {
-        if (staticKeys.includes(key)) return true
-        return prefixes.some((prefix) => key.indexOf(prefix) === 0)
-      })
-
-      keysToRemove.forEach((key) => wx.removeStorageSync(key))
-      if (keysToRemove.length > 0) {
-        console.log('[App] 已清理模板本地缓存数量:', keysToRemove.length)
-      }
-    } catch (error) {
-      console.warn('[App] 清理模板本地缓存失败:', error)
-    }
   },
 
   // 初始化 WebSocket

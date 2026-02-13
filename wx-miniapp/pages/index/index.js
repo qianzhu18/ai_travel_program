@@ -1,9 +1,8 @@
 // pages/index/index.js
 const { templateApi, promotionApi } = require('../../utils/api.js')
 
-const TEMPLATE_VERSION_KEY = 'templateVersion'
-const TEMPLATE_CACHE_PREFIX = 'templateCache:p1:'
-const ENABLE_TEMPLATE_LOCAL_CACHE = false
+const TEMPLATE_VERSION_KEY = 'templateVersion'
+const TEMPLATE_CACHE_PREFIX = 'templateCache:p1:'
 
 
 Page({
@@ -39,15 +38,12 @@ Page({
   hasObservedAll: false,
   disableIntersectionObserver: false,
 
-  onLoad(options) {
-    // 获取状态栏高度（用于自定义导航栏）
-    const systemInfo = wx.getSystemInfoSync()
-    this.setData({
-      statusBarHeight: systemInfo.statusBarHeight || 20
-    })
-
-    // 模板数据以后台为准，禁用并清理本地模板缓存
-    this.clearTemplateCache()
+  onLoad(options) {
+    // 获取状态栏高度（用于自定义导航栏）
+    const systemInfo = wx.getSystemInfoSync()
+    this.setData({
+      statusBarHeight: systemInfo.statusBarHeight || 20
+    })
 
     // 处理推广链接
     this.handlePromotion(options)
@@ -94,28 +90,26 @@ Page({
     return false
   },
 
-  clearTemplateCache() {
-    try {
-      const info = wx.getStorageInfoSync()
-      info.keys
-        .filter((key) => key.indexOf(TEMPLATE_CACHE_PREFIX) === 0)
-        .forEach((key) => wx.removeStorageSync(key))
-      wx.removeStorageSync(TEMPLATE_VERSION_KEY)
-    } catch (error) {
-      console.log('[Cache] clear failed:', error)
-    }
-  },
+  clearTemplateCache() {
+    try {
+      const info = wx.getStorageInfoSync()
+      info.keys
+        .filter((key) => key.indexOf(TEMPLATE_CACHE_PREFIX) === 0)
+        .forEach((key) => wx.removeStorageSync(key))
+    } catch (error) {
+      console.log('[Cache] clear failed:', error)
+    }
+  },
 
   getTemplateCacheKey(groupCode) {
     return `${TEMPLATE_CACHE_PREFIX}${groupCode || 'all'}`
   },
 
-  getCachedTemplates(groupCode) {
-    if (!ENABLE_TEMPLATE_LOCAL_CACHE) return null
-    try {
-      const key = this.getTemplateCacheKey(groupCode)
-      const cached = wx.getStorageSync(key)
-      if (!cached) return null
+  getCachedTemplates(groupCode) {
+    try {
+      const key = this.getTemplateCacheKey(groupCode)
+      const cached = wx.getStorageSync(key)
+      if (!cached) return null
       const parsed = JSON.parse(cached)
       if (!parsed || !Array.isArray(parsed.templates)) return null
       return parsed
@@ -125,11 +119,10 @@ Page({
     }
   },
 
-  saveTemplateCache(groupCode, payload) {
-    if (!ENABLE_TEMPLATE_LOCAL_CACHE) return
-    try {
-      const key = this.getTemplateCacheKey(groupCode)
-      const data = {
+  saveTemplateCache(groupCode, payload) {
+    try {
+      const key = this.getTemplateCacheKey(groupCode)
+      const data = {
         version: this.getStoredTemplateVersion(),
         templates: payload.templates || [],
         page: payload.page || 1,

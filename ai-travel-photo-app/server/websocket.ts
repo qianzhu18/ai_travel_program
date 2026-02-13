@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket, RawData } from 'ws';
 
 // 消息类型定义
 export interface WsMessage {
-  type: 'photo_status' | 'notification' | 'register' | 'ping' | 'pong';
+  type: 'photo_status' | 'notification' | 'ping' | 'pong';
   data?: any;
 }
 
@@ -97,7 +97,6 @@ function handleMessage(clientId: string, message: WsMessage) {
       break;
 
     case 'notification':
-    case 'register':
       // 客户端注册 userOpenId
       if (message.data?.userOpenId) {
         client.userOpenId = message.data.userOpenId;
