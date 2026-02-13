@@ -9,6 +9,7 @@ const { request } = require('../../utils/request.js')
 const TEMPLATE_VERSION_KEY = 'templateVersion'
 
 const TEMPLATE_CACHE_PREFIX = 'templateCache:p8:'
+const ENABLE_TEMPLATE_LOCAL_CACHE = false
 
 
 
@@ -136,6 +137,9 @@ Page({
     // 获取状态栏高度
 
     this.initNavBar()
+
+    // 模板数据以后台为准，禁用并清理本地模板缓存
+    this.clearTemplateCache()
 
 
 
@@ -266,6 +270,8 @@ Page({
 
         .forEach((key) => wx.removeStorageSync(key))
 
+      wx.removeStorageSync(TEMPLATE_VERSION_KEY)
+
     } catch (error) {
 
       console.log('[Cache] clear failed:', error)
@@ -295,6 +301,7 @@ Page({
 
 
   getCachedTemplates() {
+    if (!ENABLE_TEMPLATE_LOCAL_CACHE) return null
 
     try {
 
@@ -323,6 +330,7 @@ Page({
 
 
   saveTemplateCache(payload) {
+    if (!ENABLE_TEMPLATE_LOCAL_CACHE) return
 
     try {
 
@@ -2137,7 +2145,6 @@ Page({
   }
 
 })
-
 
 
 

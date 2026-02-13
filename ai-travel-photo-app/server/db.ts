@@ -1677,17 +1677,32 @@ export async function getAllGroupTypes() {
 export async function getActiveGroupTypes(photoType?: 'single' | 'group') {
   const db = await getDb();
   if (!db) return [];
-  
-  const conditions: any[] = [eq(groupTypes.isActive, true)];
+
+  const templateConditions: any[] = [eq(templates.status, 'active')];
+  if (photoType) {
+    templateConditions.push(eq(templates.photoType, photoType));
+  }
+
+  const activeTemplateGroups = await db.selectDistinct({ code: templates.groupType })
+    .from(templates)
+    .where(and(...templateConditions));
+
+  const activeCodes = activeTemplateGroups.map((item) => item.code).filter(Boolean);
+  if (activeCodes.length === 0) return [];
+
+  const conditions: any[] = [
+    eq(groupTypes.isActive, true),
+    inArray(groupTypes.code, activeCodes),
+  ];
   if (photoType) {
     conditions.push(eq(groupTypes.photoType, photoType));
   }
-  
+
   const result = await db.select()
     .from(groupTypes)
     .where(and(...conditions))
     .orderBy(asc(groupTypes.sortOrder), asc(groupTypes.id));
-  
+
   return result;
 }
 

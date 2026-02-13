@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "cleanup:legacy-templates": "tsx scripts/cleanup-legacy-templates.ts",
     "video:preview": "remotion studio remotion/index.ts",
     "video:render": "remotion render remotion/index.ts MarketingVideo out/marketing-video.mp4",
     "video:render:album": "remotion render remotion/index.ts PhotoAlbumVideo out/photo-album.mp4",
