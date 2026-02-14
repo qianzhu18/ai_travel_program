@@ -8,10 +8,11 @@ const tsxBin = process.platform === "win32"
 
 const childEnv = {
   ...process.env,
-  NODE_ENV: process.env.NODE_ENV ?? "development",
+  NODE_ENV: "development",
   DEV_ADMIN_BYPASS: process.env.DEV_ADMIN_BYPASS ?? "true",
 };
 
+console.log(`[dev] cwd=${projectRoot}`);
 console.log(`[dev] NODE_ENV=${childEnv.NODE_ENV}, DEV_ADMIN_BYPASS=${childEnv.DEV_ADMIN_BYPASS}`);
 
 const child = spawn(tsxBin, ["watch", "server/_core/index.ts"], {

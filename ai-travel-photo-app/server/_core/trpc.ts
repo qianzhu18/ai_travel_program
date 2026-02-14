@@ -35,8 +35,11 @@ export const adminProcedure = t.procedure.use(
       ? authHeader.slice(7).trim()
       : "";
 
-    const devAdminBypass = process.env.DEV_ADMIN_BYPASS === "true";
-    if (process.env.NODE_ENV === "development" && devAdminBypass) {
+    const runtimeEnv = process.env.NODE_ENV ?? "development";
+    const isLocalDev = runtimeEnv !== "production" && runtimeEnv !== "test";
+    // 本地开发默认开启管理员兜底；如需严格鉴权可显式设置 DEV_ADMIN_BYPASS=false
+    const devAdminBypass = process.env.DEV_ADMIN_BYPASS !== "false";
+    if (isLocalDev && devAdminBypass) {
       const devAdminUser = ctx.user ?? {
         id: 0,
         openId: "local-super-admin",
@@ -69,7 +72,7 @@ export const adminProcedure = t.procedure.use(
       });
     }
 
-    if (process.env.NODE_ENV === "development" && bearerToken.startsWith("admin_superadmin_")) {
+    if (isLocalDev && bearerToken.startsWith("admin_superadmin_")) {
       const superAdminUser = ctx.user ?? {
         id: 0,
         openId: "local-super-admin",

@@ -1288,7 +1288,7 @@ export default function TemplateConfigPage() {
    */
   const uploadBatchImages = async (batchId: string, files: File[]) => {
     const BATCH_SIZE = 5;
-    const results: { index: number; url: string; fileKey: string; thumbnailUrl?: string; webpUrl?: string; thumbnailWebpUrl?: string; success: boolean }[] = [];
+    const results: { index: number; url: string; fileKey: string; thumbnailUrl?: string; webpUrl?: string; thumbnailWebpUrl?: string; success: boolean; errorMessage?: string }[] = [];
 
     for (let i = 0; i < files.length; i += BATCH_SIZE) {
       const batchFiles = files.slice(i, i + BATCH_SIZE);
@@ -1307,7 +1307,8 @@ export default function TemplateConfigPage() {
           return { index: actualIndex, url: result.url, fileKey: result.fileKey, thumbnailUrl: result.thumbnailUrl, webpUrl: result.webpUrl, thumbnailWebpUrl: result.thumbnailWebpUrl, success: true };
         } catch (err) {
           console.error(`上传图片失败: ${file.name}`, err);
-          return { index: actualIndex, url: '', fileKey: '', success: false };
+          const errorMessage = err instanceof Error ? err.message : '上传失败';
+          return { index: actualIndex, url: '', fileKey: '', success: false, errorMessage };
         }
       });
 
@@ -1343,6 +1344,10 @@ export default function TemplateConfigPage() {
     const successCount = results.filter(r => r.success).length;
     if (successCount < files.length) {
       toast.warning(`上传完成: ${successCount}/${files.length} 张成功`);
+      const firstFailure = results.find(r => !r.success && r.errorMessage);
+      if (firstFailure) {
+        toast.error(`上传失败原因：${firstFailure.errorMessage}`);
+      }
     }
   };
 
@@ -1435,7 +1440,7 @@ export default function TemplateConfigPage() {
       // 后台上传图片（复用 addBatch 的上传逻辑）
       const allBatchFiles = [...narrowFiles, ...wideFiles];
       const BATCH_SIZE = 5;
-      const results: { index: number; url: string; fileKey: string; thumbnailUrl?: string; webpUrl?: string; thumbnailWebpUrl?: string; success: boolean }[] = [];
+      const results: { index: number; url: string; fileKey: string; thumbnailUrl?: string; webpUrl?: string; thumbnailWebpUrl?: string; success: boolean; errorMessage?: string }[] = [];
 
       for (let i = 0; i < allBatchFiles.length; i += BATCH_SIZE) {
         const batchFiles = allBatchFiles.slice(i, i + BATCH_SIZE);
@@ -1456,7 +1461,8 @@ export default function TemplateConfigPage() {
             return { index: actualIndex, url: result.url, fileKey: result.fileKey, thumbnailUrl: result.thumbnailUrl, webpUrl: result.webpUrl, thumbnailWebpUrl: result.thumbnailWebpUrl, success: true };
           } catch (err) {
             console.error(`上传图片失败: ${file.name}`, err);
-            return { index: actualIndex, url: '', fileKey: '', success: false };
+            const errorMessage = err instanceof Error ? err.message : '上传失败';
+            return { index: actualIndex, url: '', fileKey: '', success: false, errorMessage };
           }
         });
 
@@ -1498,6 +1504,10 @@ export default function TemplateConfigPage() {
         toast.success(`配对批次上传完成: ${successCount} 张图片`, { id: toastId });
       } else {
         toast.warning(`配对批次上传: ${successCount}/${allBatchFiles.length} 张成功`, { id: toastId });
+        const firstFailure = results.find(r => !r.success && r.errorMessage);
+        if (firstFailure) {
+          toast.error(`上传失败原因：${firstFailure.errorMessage}`);
+        }
       }
     } catch (error) {
       console.error(error);

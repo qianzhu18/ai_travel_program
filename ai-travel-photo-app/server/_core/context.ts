@@ -19,8 +19,10 @@ export async function createContext(
 
   try {
     const ownerId = ENV.ownerOpenId || "local-super-admin";
+    const runtimeEnv = process.env.NODE_ENV ?? "development";
+    const isLocalDev = runtimeEnv !== "production" && runtimeEnv !== "test";
 
-    if (process.env.NODE_ENV === "development") {
+    if (isLocalDev) {
       const authHeader = opts.req.headers.authorization;
       const bearerToken = typeof authHeader === "string" && authHeader.startsWith("Bearer ")
         ? authHeader.slice(7).trim()

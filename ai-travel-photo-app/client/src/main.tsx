@@ -46,8 +46,10 @@ const trpcClient = trpc.createClient({
         const headers = new Headers(init?.headers ?? {});
         if (typeof window !== "undefined") {
           const channelToken = window.localStorage.getItem("channelToken");
-          if (channelToken) {
-            headers.set("Authorization", `Bearer ${channelToken}`);
+          const fallbackToken = window.localStorage.getItem("token");
+          const authToken = channelToken || fallbackToken;
+          if (authToken) {
+            headers.set("Authorization", `Bearer ${authToken}`);
           }
         }
 
