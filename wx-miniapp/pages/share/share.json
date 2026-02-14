@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "分享",
+  "enableShareAppMessage": true,
+  "enableShareTimeline": true,
   "usingComponents": {}
 }

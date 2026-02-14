@@ -22,7 +22,24 @@ Page({
   // 箭头隐藏定时器
   arrowTimer: null,
 
+  enableShareMenus() {
+    if (!wx.showShareMenu) return
+
+    try {
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline']
+      })
+    } catch (error) {
+      wx.showShareMenu({
+        withShareTicket: true
+      })
+    }
+  },
+
   onLoad(options) {
+    this.enableShareMenus()
+
     // 获取状态栏高度和胶囊按钮信息
     const systemInfo = wx.getSystemInfoSync()
     const menuButton = wx.getMenuButtonBoundingClientRect()
@@ -80,6 +97,10 @@ Page({
       console.error('[Result] 错误：未找到任何有效的结果图片URL')
       this.setData({ loading: false })
     }
+  },
+
+  onShow() {
+    this.enableShareMenus()
   },
 
   onUnload() {

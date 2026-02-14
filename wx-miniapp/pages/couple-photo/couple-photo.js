@@ -33,7 +33,24 @@ Page({
   // WebSocket 取消订阅函数
   unsubscribeWs: null,
 
+  enableShareMenus() {
+    if (!wx.showShareMenu) return
+
+    try {
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline']
+      })
+    } catch (error) {
+      wx.showShareMenu({
+        withShareTicket: true
+      })
+    }
+  },
+
   onLoad(options) {
+    this.enableShareMenus()
+
     // 获取状态栏高度
     const systemInfo = wx.getSystemInfoSync()
     this.setData({
@@ -67,6 +84,10 @@ Page({
 
     // 订阅 WebSocket 消息
     this.subscribeWebSocket()
+  },
+
+  onShow() {
+    this.enableShareMenus()
   },
 
   onUnload() {

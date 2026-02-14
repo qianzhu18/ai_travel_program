@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "双人合照",
+  "enableShareAppMessage": true,
+  "enableShareTimeline": true,
   "usingComponents": {}
 }

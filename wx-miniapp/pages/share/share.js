@@ -36,8 +36,24 @@ Page({
     shareTitle: ''
   },
 
+  enableShareMenus() {
+    if (!wx.showShareMenu) return
+
+    try {
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline']
+      })
+    } catch (error) {
+      wx.showShareMenu({
+        withShareTicket: true
+      })
+    }
+  },
+
   onLoad(options) {
     console.log('[Share Page] onLoad options:', options)
+    this.enableShareMenus()
 
     // 获取用户OpenId
     const userOpenId = wx.getStorageSync('userOpenId') || ''
@@ -81,6 +97,10 @@ Page({
         errorMessage: '分享链接参数错误'
       })
     }
+  },
+
+  onShow() {
+    this.enableShareMenus()
   },
 
   // 加载照片数据
