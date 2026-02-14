@@ -892,6 +892,151 @@ export const appRouter = router({
         }
       }),
 
+    // 公开批量换脸接口（兼容小程序 P8：photo.createBatchPublic）
+    createBatchPublic: publicProcedure
+      .input(z.object({
+        selfieUrl: z.string(),
+        templateIds: z.array(z.number()).min(1, '至少选择一个模板'),
+        detectedFaceType: z.string().optional(),
+        userOpenId: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        // 预先解析模板并执行脸型匹配（与 createSinglePublic 保持一致）
+        const faceTypeGroups = ['girl_young', 'woman_mature', 'woman_elder', 'man_young', 'man_elder'];
+        const resolvedTemplates: any[] = [];
+
+        for (const templateId of input.templateIds) {
+          let template = await db.getTemplateById(templateId);
+          if (!template) {
+            throw new TRPCError({ code: 'NOT_FOUND', message: `模板不存在: ${templateId}` });
+          }
+
+          const needFaceTypeMatch = faceTypeGroups.includes(template.groupType || '');
+          if (needFaceTypeMatch && input.detectedFaceType) {
+            const targetFaceType = coze.convertFaceTypeToDb(input.detectedFaceType);
+            if (targetFaceType && targetFaceType !== template.faceType) {
+              const matchingTemplate = await db.findMatchingTemplate({
+                originalTemplateId: template.id,
+                targetFaceType,
+              });
+              if (matchingTemplate) {
+                template = matchingTemplate;
+              }
+            }
+          }
+
+          resolvedTemplates.push(template);
+        }
+
+        let userId = 0;
+        if (input.userOpenId) {
+          const user = await db.getUserByOpenId(input.userOpenId);
+          if (user) userId = user.id;
+        }
+
+        // 先创建记录并立即返回，让小程序进入 generating 页轮询
+        const photoIds: string[] = [];
+        for (const template of resolvedTemplates) {
+          const photoId = await db.generatePhotoId();
+          photoIds.push(photoId);
+          await db.createUserPhoto({
+            photoId,
+            userId,
+            templateId: template.id,
+            selfieUrl: input.selfieUrl,
+            photoType: 'single',
+            status: 'processing',
+            detectedFaceType: input.detectedFaceType || null,
+          });
+        }
+
+        (async () => {
+          try {
+            const publicSelfieUrl = await ensurePublicUrl(input.selfieUrl);
+
+            for (let i = 0; i < resolvedTemplates.length; i++) {
+              const template = resolvedTemplates[i];
+              const photoId = photoIds[i];
+              const photo = await db.getUserPhotoByPhotoId(photoId);
+              if (!photo) continue;
+
+              try {
+                const rawTemplateImageUrl = template.hasMaskRegions && template.maskedImageUrl
+                  ? template.maskedImageUrl
+                  : template.imageUrl;
+                const publicTemplateUrl = await ensurePublicUrl(rawTemplateImageUrl);
+
+                const { executeId, resultUrls } = await coze.faceSwapSingle({
+                  userImageUrl: publicSelfieUrl,
+                  templateImageUrls: [publicTemplateUrl],
+                });
+
+                if (resultUrls && resultUrls.length > 0 && resultUrls[0]) {
+                  let finalResultUrl = resultUrls[0];
+
+                  try {
+                    const { downloadImage, restoreRegions } = await import('./imageMask');
+                    if (template.hasMaskRegions && template.regionCacheUrl) {
+                      const [swappedBuffer, regionCacheBuffer] = await Promise.all([
+                        downloadImage(resultUrls[0]),
+                        downloadImage(template.regionCacheUrl),
+                      ]);
+                      const restoredBuffer = await restoreRegions(swappedBuffer, regionCacheBuffer);
+                      const fileKey = `photos/${photoId}_restored_${Date.now()}.jpg`;
+                      const { url } = await storagePut(fileKey, restoredBuffer, 'image/jpeg');
+                      finalResultUrl = url;
+                    } else {
+                      const imageBuffer = await downloadImage(resultUrls[0]);
+                      const fileKey = `photos/${photoId}_${Date.now()}.jpg`;
+                      const { url } = await storagePut(fileKey, imageBuffer, 'image/jpeg');
+                      finalResultUrl = url;
+                    }
+                  } catch (uploadError: any) {
+                    console.error('[photo.createBatchPublic] 上传COS失败，使用原始URL:', uploadError.message);
+                  }
+
+                  await db.updateUserPhotoStatus(photo.id, {
+                    status: 'completed',
+                    workflowRunId: executeId,
+                    resultUrl: finalResultUrl,
+                    progress: 100,
+                  });
+
+                  if (input.userOpenId) {
+                    notifyPhotoStatus(input.userOpenId, photoId, 'completed', [finalResultUrl]);
+                  }
+                } else {
+                  await db.updateUserPhotoStatus(photo.id, {
+                    status: 'failed',
+                    workflowRunId: executeId,
+                    errorMessage: '换脸未生成结果图片',
+                  });
+                  if (input.userOpenId) {
+                    notifyPhotoStatus(input.userOpenId, photoId, 'failed');
+                  }
+                }
+              } catch (error: any) {
+                await db.updateUserPhotoStatus(photo.id, {
+                  status: 'failed',
+                  errorMessage: error.message,
+                });
+                if (input.userOpenId) {
+                  notifyPhotoStatus(input.userOpenId, photoId, 'failed');
+                }
+              }
+            }
+          } catch (error) {
+            console.error('[photo.createBatchPublic] 异步任务失败:', error);
+          }
+        })();
+
+        return {
+          photoIds,
+          totalPhotos: photoIds.length,
+          status: 'processing' as const,
+        };
+      }),
+
     // 公开查询照片状态（小程序使用）
     getStatusPublic: publicProcedure
       .input(z.object({ photoId: z.string() }))
