@@ -36,10 +36,14 @@ export const adminProcedure = t.procedure.use(
       : "";
 
     const runtimeEnv = process.env.NODE_ENV ?? "development";
-    const isLocalDev = runtimeEnv !== "production" && runtimeEnv !== "test";
-    // 本地开发默认开启管理员兜底；如需严格鉴权可显式设置 DEV_ADMIN_BYPASS=false
+    const isTestEnv = runtimeEnv === "test";
+    const hostHeader = typeof ctx.req.headers.host === "string" ? ctx.req.headers.host : "";
+    const isLocalHost = hostHeader.includes("localhost") || hostHeader.includes("127.0.0.1") || hostHeader.includes("[::1]");
+    // 允许本地调试（非 test）时启用管理员兜底；生产远程环境可通过 DEV_ADMIN_BYPASS=false 关闭
     const devAdminBypass = process.env.DEV_ADMIN_BYPASS !== "false";
-    if (isLocalDev && devAdminBypass) {
+    const allowLocalBypass = !isTestEnv && devAdminBypass && (runtimeEnv !== "production" || isLocalHost);
+
+    if (allowLocalBypass) {
       const devAdminUser = ctx.user ?? {
         id: 0,
         openId: "local-super-admin",
@@ -72,7 +76,8 @@ export const adminProcedure = t.procedure.use(
       });
     }
 
-    if (isLocalDev && bearerToken.startsWith("admin_superadmin_")) {
+    const allowSuperAdminBearer = !isTestEnv && bearerToken.startsWith("admin_superadmin_") && (runtimeEnv !== "production" || isLocalHost);
+    if (allowSuperAdminBearer) {
       const superAdminUser = ctx.user ?? {
         id: 0,
         openId: "local-super-admin",
@@ -106,6 +111,17 @@ export const adminProcedure = t.procedure.use(
     }
 
     if (!ctx.user || ctx.user.role !== 'admin') {
+      if (!isTestEnv) {
+        console.warn("[adminProcedure] forbidden", {
+          env: runtimeEnv,
+          host: hostHeader || "(none)",
+          hasUser: !!ctx.user,
+          userRole: ctx.user?.role ?? "(none)",
+          hasAuthHeader: !!authHeader,
+          bearerPrefix: bearerToken ? bearerToken.slice(0, 24) : "(empty)",
+          devAdminBypass,
+        });
+      }
       throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
     }
 

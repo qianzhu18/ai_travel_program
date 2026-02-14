@@ -20,7 +20,10 @@ export async function createContext(
   try {
     const ownerId = ENV.ownerOpenId || "local-super-admin";
     const runtimeEnv = process.env.NODE_ENV ?? "development";
-    const isLocalDev = runtimeEnv !== "production" && runtimeEnv !== "test";
+    const isTestEnv = runtimeEnv === "test";
+    const hostHeader = typeof opts.req.headers.host === "string" ? opts.req.headers.host : "";
+    const isLocalHost = hostHeader.includes("localhost") || hostHeader.includes("127.0.0.1") || hostHeader.includes("[::1]");
+    const isLocalDev = !isTestEnv && (runtimeEnv !== "production" || isLocalHost);
 
     if (isLocalDev) {
       const authHeader = opts.req.headers.authorization;
